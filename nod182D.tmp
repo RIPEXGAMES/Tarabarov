@@ -1,0 +1,52 @@
+[gd_scene load_steps=10 format=3 uid="uid://chwixw10hbyl4"]
+
+[ext_resource type="TileSet" uid="uid://bmkx88y74xjpv" path="res://world_tileset.tres" id="1_5s4ky"]
+[ext_resource type="Script" path="res://Main.gd" id="1_dsmn6"]
+[ext_resource type="TileSet" uid="uid://c2iygwuuhmliw" path="res://highlight_tileset.tres" id="1_pu24o"]
+[ext_resource type="Script" path="res://high_litghter_script.gd" id="2_357ty"]
+[ext_resource type="Script" path="res://MapGenerator.gd" id="2_l4cvm"]
+[ext_resource type="Script" path="res://camera_controller.gd" id="3_yx5f8"]
+[ext_resource type="FontFile" uid="uid://d0dceg0j1riyv" path="res://Textures/Roboto-VariableFont_wdth,wght.ttf" id="4_1fv8m"]
+[ext_resource type="TileSet" uid="uid://domrej5h1xpe" path="res://fog_of_war_tileset.tres" id="8_o5dyj"]
+[ext_resource type="Script" path="res://FogOfWar.gd" id="9_d35ji"]
+
+[node name="Node2D" type="Node2D" node_paths=PackedStringArray("world_map")]
+script = ExtResource("1_dsmn6")
+world_map = NodePath("WorldMap")
+
+[node name="HighLitghter" type="TileMapLayer" parent="."]
+z_index = 10
+texture_filter = 1
+tile_set = ExtResource("1_pu24o")
+collision_visibility_mode = 1
+script = ExtResource("2_357ty")
+
+[node name="PathCostLabel" type="Label" parent="HighLitghter"]
+offset_right = 16.0
+offset_bottom = 16.0
+theme_override_fonts/font = ExtResource("4_1fv8m")
+theme_override_font_sizes/font_size = 8
+text = "5"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="WorldMap" type="TileMapLayer" parent="."]
+texture_filter = 1
+tile_set = ExtResource("1_5s4ky")
+script = ExtResource("2_l4cvm")
+Width = 25
+Height = 20
+
+[node name="Camera2D" type="Camera2D" parent="." node_paths=PackedStringArray("tilemap_layer")]
+visible = false
+position = Vector2(400, 200)
+zoom = Vector2(1.5, 1.5)
+script = ExtResource("3_yx5f8")
+tilemap_layer = NodePath("../WorldMap")
+min_zoom = 5.0
+max_zoom = 8.0
+
+[node name="FogOfWarTilemap" type="TileMapLayer" parent="."]
+z_index = 5
+tile_set = ExtResource("8_o5dyj")
+script = ExtResource("9_d35ji")

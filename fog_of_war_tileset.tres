@@ -1,0 +1,16 @@
+[gd_resource type="TileSet" load_steps=5 format=3 uid="uid://domrej5h1xpe"]
+
+[ext_resource type="Texture2D" uid="uid://bkq8cgmvb0wft" path="res://Textures/FogOfWar.png" id="1_8mbwa"]
+[ext_resource type="Texture2D" uid="uid://c0o1pc7dvo4cm" path="res://Textures/FogOfWarExplored.png" id="2_p0oda"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_hbftf"]
+texture = ExtResource("1_8mbwa")
+0:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_fosw7"]
+texture = ExtResource("2_p0oda")
+0:0/0 = 0
+
+[resource]
+sources/0 = SubResource("TileSetAtlasSource_hbftf")
+sources/1 = SubResource("TileSetAtlasSource_fosw7")

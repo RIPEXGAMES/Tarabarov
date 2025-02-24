@@ -1,0 +1,41 @@
+[gd_scene load_steps=5 format=3 uid="uid://1cggujd8egd7"]
+
+[ext_resource type="Script" path="res://character_global_map_script.gd" id="1_k0aa5"]
+[ext_resource type="Texture2D" uid="uid://bju6omg1tb8tp" path="res://Flag.png" id="2_iel1c"]
+[ext_resource type="FontFile" uid="uid://d0dceg0j1riyv" path="res://Textures/Roboto-VariableFont_wdth,wght.ttf" id="3_16j3g"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_4j6gy"]
+size = Vector2(10, 14)
+
+[node name="CharacterBody2D" type="CharacterBody2D"]
+z_index = 6
+script = ExtResource("1_k0aa5")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_iel1c")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+visible = false
+shape = SubResource("RectangleShape2D_4j6gy")
+
+[node name="UIAnchor" type="Node2D" parent="."]
+position = Vector2(10, 0)
+
+[node name="ActionPointsLabel" type="Label" parent="UIAnchor"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -6.0
+offset_top = -14.0
+offset_right = 6.0
+offset_bottom = 14.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_fonts/font = ExtResource("3_16j3g")
+theme_override_font_sizes/font_size = 20
+text = "5"
+horizontal_alignment = 1
+vertical_alignment = 1
