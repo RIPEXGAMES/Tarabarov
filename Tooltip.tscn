@@ -1,0 +1,34 @@
+[gd_scene load_steps=3 format=3 uid="uid://bolw0iafnehng"]
+
+[ext_resource type="Texture2D" uid="uid://b21g8c7o75hvy" path="res://UI/Tooltip/Frame.png" id="1_86e2f"]
+[ext_resource type="FontFile" uid="uid://d0dceg0j1riyv" path="res://Textures/Roboto-VariableFont_wdth,wght.ttf" id="2_bla77"]
+
+[node name="Tooltip" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+
+[node name="NinePatchRect" type="NinePatchRect" parent="."]
+layout_mode = 0
+offset_right = 288.0
+offset_bottom = 338.0
+texture = ExtResource("1_86e2f")
+patch_margin_left = 40
+patch_margin_top = 40
+patch_margin_right = 40
+patch_margin_bottom = 40
+
+[node name="MarginContainer" type="MarginContainer" parent="NinePatchRect"]
+layout_mode = 0
+offset_right = 262.0
+offset_bottom = 312.0
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 50
+theme_override_constants/margin_bottom = 50
+
+[node name="Label" type="Label" parent="NinePatchRect/MarginContainer"]
+layout_mode = 2
+theme_override_fonts/font = ExtResource("2_bla77")
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
