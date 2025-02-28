@@ -1,34 +1,49 @@
 [gd_scene load_steps=3 format=3 uid="uid://bolw0iafnehng"]
 
-[ext_resource type="Texture2D" uid="uid://b21g8c7o75hvy" path="res://UI/Tooltip/Frame.png" id="1_86e2f"]
 [ext_resource type="FontFile" uid="uid://d0dceg0j1riyv" path="res://Textures/Roboto-VariableFont_wdth,wght.ttf" id="2_bla77"]
 
-[node name="Tooltip" type="Control"]
-layout_mode = 3
-anchors_preset = 0
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uxokw"]
+bg_color = Color(0.1, 0.1, 0.1, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.5, 0.5, 0.5, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_color = Color(0, 0, 0, 0.3)
+shadow_size = 4
+shadow_offset = Vector2(2, 2)
 
-[node name="NinePatchRect" type="NinePatchRect" parent="."]
-layout_mode = 0
-offset_right = 288.0
-offset_bottom = 338.0
-texture = ExtResource("1_86e2f")
-patch_margin_left = 40
-patch_margin_top = 40
-patch_margin_right = 40
-patch_margin_bottom = 40
+[node name="PanelContainer" type="PanelContainer"]
+offset_right = 147.0
+offset_bottom = 96.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_uxokw")
 
-[node name="MarginContainer" type="MarginContainer" parent="NinePatchRect"]
-layout_mode = 0
-offset_right = 262.0
-offset_bottom = 312.0
-theme_override_constants/margin_left = 50
-theme_override_constants/margin_top = 50
-theme_override_constants/margin_right = 50
-theme_override_constants/margin_bottom = 50
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 
-[node name="Label" type="Label" parent="NinePatchRect/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Name" type="Label" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_fonts/font = ExtResource("2_bla77")
+theme_override_font_sizes/font_size = 18
+text = "Лес"
 horizontal_alignment = 1
 vertical_alignment = 1
-autowrap_mode = 3
+
+[node name="RichTextLabel" type="RichTextLabel" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_fonts/normal_font = ExtResource("2_bla77")
+bbcode_enabled = true
+text = "[center]Лес[/center]"
+fit_content = true
