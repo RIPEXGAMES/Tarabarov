@@ -32,32 +32,38 @@ enum POI_TYPE {
 
 const POI_DATA = {
 	POI_TYPE.SAWMILL: {
-		"name": "Лесопилка",
+		"name": "Sawmill",
+		"description": "Abandoned sawmill with remnants of equipment. {color=#aaff00}Tools+.{/color}",
 		"biomes": [BIOME.FOREST], # Биомы для руин
 		"tile_id": 20 # Координаты тайла руин в атласе
 	},
 	POI_TYPE.VILLAGE: {
-		"name": "Деревня",
+		"name": "Village",
+		"description": "People used to live here. {color=#aaff00}Food+{/color}",
 		"biomes": [BIOME.CLEARING, BIOME.HILL], # Биомы для деревни
 		"tile_id": 21  # Координаты тайла деревни в атласе
 	},
 	POI_TYPE.CAMP: {
-		"name": "Лагерь",
+		"name": "Camp",
+		"description": "Someone hiding here... {color=#aaff00}Enemy+{/color}",
 		"biomes": ["ANY"], # "ANY" - лагерь в любом биоме
 		"tile_id": 22 # Координаты тайла лагеря в атласе
 	},
 	POI_TYPE.HUNTER: {
-		"name": "Дом Охотника",
+		"name": "Hunter House",
+		"description": "Just house in forest, nothing suspicious. {color=#aaff00}Weapon+{/color}",
 		"biomes": [BIOME.HILL, BIOME.FOREST], # Биомы для дома охотника
 		"tile_id": 23 # Координаты тайла дома охотника в атласе
 	},
 	POI_TYPE.EXTR_A: {
-		"name": "Точка Эваукации A",
+		"name": "Extraction Point A",
+		"description": "Alpha Extraction Point",
 		"biomes": [BIOME.CLEARING, BIOME.FOREST],
 		"tile_id": 30
 	},
 	POI_TYPE.EXTR_B: {
-		"name": "Точка Эваукации A",
+		"name": "Extraction Point B",
+		"description": "Beta Extraction Point",
 		"biomes": [BIOME.CLEARING, BIOME.FOREST],
 		"tile_id": 31 
 	}
