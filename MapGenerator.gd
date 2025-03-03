@@ -64,25 +64,25 @@ enum POI_TYPE {
 const POI_DATA = {
 	POI_TYPE.SAWMILL: {
 		"name": "Sawmill",
-		"description": "Abandoned sawmill with remnants of equipment. [color=#aaff00]Tools+.[/color]",
+		"description": "Abandoned sawmill with remnants of equipment.\n[color=#aaff00]Tools+.[/color]",
 		"biomes": [BIOME.FOREST], # Биомы для руин
 		"tile_id": 20 # Координаты тайла руин в атласе
 	},
 	POI_TYPE.VILLAGE: {
 		"name": "Village",
-		"description": "People used to live here. [color=#aaff00]Food+[/color]",
+		"description": "People used to live here.\n[color=#aaff00]Food+[/color]",
 		"biomes": [BIOME.CLEARING, BIOME.HILL], # Биомы для деревни
 		"tile_id": 21  # Координаты тайла деревни в атласе
 	},
 	POI_TYPE.CAMP: {
 		"name": "Camp",
-		"description": "Someone hiding here... [color=#aaff00]Enemy+[/color]",
+		"description": "Someone hiding here...\n[color=#aaff00]Enemy+[/color]",
 		"biomes": ["ANY"], # "ANY" - лагерь в любом биоме
 		"tile_id": 22 # Координаты тайла лагеря в атласе
 	},
 	POI_TYPE.HUNTER: {
 		"name": "Hunter House",
-		"description": "Just house in forest, nothing suspicious. [color=#aaff00]Weapon+[/color]",
+		"description": "Just house in forest, nothing suspicious.\n[color=#aaff00]Weapon+[/color]",
 		"biomes": [BIOME.HILL, BIOME.FOREST], # Биомы для дома охотника
 		"tile_id": 23 # Координаты тайла дома охотника в атласе
 	},
@@ -307,7 +307,7 @@ func generate_poi():
 	var extr_a_placed = false
 	var extr_b_placed = false
 	const MAX_SAWMILLS = 2
-	const MAX_VILLAGES = 1
+	const MAX_VILLAGES = 2
 	const MIN_DISTANCE_BETWEEN_EXTR = 10 # Минимальное расстояние между точками эвакуации (в клетках)
 	var placed_extr_a_cell: Vector2i
 
@@ -345,7 +345,7 @@ func generate_poi():
 				break
 
 	# **Генерация остальных POI (RUINS, VILLAGE, CAMP, TOWER, SAWMILL) - без изменений**
-	var num_poi_attempts = 10
+	var num_poi_attempts = 15
 	for _i in num_poi_attempts:
 		var x = randi() % Width
 		var y = randi() % Height
@@ -550,5 +550,5 @@ func get_tile_tooltip_data(cell: Vector2i) -> Dictionary:
 		data.type = "biome"	
 		data.biome_type = biome_map[cell.x][cell.y]
 		data.name = TERRAIN_DATA[data.biome_type].name
-		data.descr = TERRAIN_DATA[data.biome_type].description
+		data.descr = TERRAIN_DATA[data.biome_type].description + "\n[color=#aaff00]Move cost: " + str(TERRAIN_COST[data.biome_type]) + "[/color]"
 	return data

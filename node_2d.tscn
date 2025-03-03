@@ -35,6 +35,8 @@ vertical_alignment = 1
 texture_filter = 1
 tile_set = ExtResource("1_5s4ky")
 script = ExtResource("2_l4cvm")
+Width = 30
+Height = 25
 
 [node name="Camera2D" type="Camera2D" parent="." node_paths=PackedStringArray("tilemap_layer")]
 position = Vector2(400, 200)
