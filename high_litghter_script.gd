@@ -50,11 +50,23 @@ func _input(event: InputEvent):
 				var data = world_map.get_tile_tooltip_data(tile_pos)
 				tooltip_text_name.text = data.name
 				tooltip_text_descr.text = "[center]" + data.descr + "[/center]"
+				
+				update_highlight(tile_pos)
+				last_cell = tile_pos
 			else:
 				create_tween().tween_property(tooltip_panel,"modulate:a",0,0.1)
+				
+				clear_path_highlight()
+				clear_target_highlight()
+				modulate = Color(1, 0, 0, 1) # Красный цвет
+				if world_map.is_cell_passable(tile_pos): # Подсвечиваем красным только проходимые клетки
+					set_cell(tile_pos, 0, highlight_atlas_coord)
+					path_cost_label.visible = false
+				else:
+					clear_highlight()
+					path_cost_label.visible = false # Если клетка непроходима, просто убираем подсветку
 			#-----------------------------------------------------------------------------------
-			update_highlight(tile_pos)
-			last_cell = tile_pos
+			
 
 func is_out_of_bounds(pos: Vector2i) -> bool:
 	return pos.x < 0 || pos.y < 0 || pos.x >= world_map.Width || pos.y >= world_map.Height
