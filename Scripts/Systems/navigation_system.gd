@@ -30,7 +30,6 @@ func find_path_with_cost(start_cell: Vector2i, end_cell: Vector2i) -> Array[Vect
 		for neighbor_cell in get_neighbors(current_cell):
 			if !is_valid_cell(neighbor_cell) || !world_map.is_cell_passable(neighbor_cell): # Используем исправленную функцию is_valid_cell
 				continue # Пропускаем недопустимые клетки
-
 			var new_cost = cost_grid[current_cell] + world_map.get_move_cost(neighbor_cell)
 
 			if !cost_grid.has(neighbor_cell) || new_cost < cost_grid[neighbor_cell]:
