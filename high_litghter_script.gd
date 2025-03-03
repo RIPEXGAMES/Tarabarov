@@ -8,8 +8,14 @@ extends TileMapLayer
 @onready var path_cost_label: Label = $PathCostLabel
 @onready var fog_of_war: TileMapLayer = $"../FogOfWarTilemap"
 
+@onready var tooltip_panel: PanelContainer = $"../CanvasLayer/MarginContainer/Tooltip"
+@onready var tooltip_text_name: Label = $"../CanvasLayer/MarginContainer/Tooltip/MarginContainer/VBoxContainer/Name"
+@onready var tooltip_text_descr: RichTextLabel = $"../CanvasLayer/MarginContainer/Tooltip/MarginContainer/VBoxContainer/Description"
+
 var main
 var player
+
+var tween: Tween
 
 var path_highlighted_cells = [] # Список клеток, подсвеченных как путь
 
@@ -18,6 +24,8 @@ var last_cell: Vector2i = Vector2i(-1, -1)
 func _ready():
 	modulate = Color(1, 1, 1, 1) # Белый цвет по умолчанию
 	z_index = 10
+	tween = create_tween()
+	tween.set_parallel(true) # Разрешить параллельные анимации
 	
 func set_player(player_object):
 	player = player_object # Сохраняем переданный объект персонажа в переменной player
@@ -33,8 +41,18 @@ func _input(event: InputEvent):
 		if is_out_of_bounds(tile_pos):
 			clear_highlight()
 			return
-
 		if tile_pos != last_cell:
+			#--------------------------------Реализуем tooltip----------------------------------
+			if tween.is_running():
+				tween.kill()
+			if fog_of_war.is_tile_visible(tile_pos):
+				create_tween().tween_property(tooltip_panel,"modulate:a",1,0.1)
+				var data = world_map.get_tile_tooltip_data(tile_pos)
+				tooltip_text_name.text = data.name
+				tooltip_text_descr.text = "[center]" + data.descr + "[/center]"
+			else:
+				create_tween().tween_property(tooltip_panel,"modulate:a",0,0.1)
+			#-----------------------------------------------------------------------------------
 			update_highlight(tile_pos)
 			last_cell = tile_pos
 

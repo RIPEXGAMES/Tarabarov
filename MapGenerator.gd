@@ -20,6 +20,37 @@ var TERRAIN_COST = {
 	BIOME.ROAD: 1
 }
 
+const TERRAIN_DATA = {
+	BIOME.CLEARING: {
+		"name":"Clearing",
+		"description":"This isn’t a field. It’s shooting range. You’re the target.",
+	},
+	BIOME.FOREST: {
+		"name":"Forest",
+		"description":"If a branch snaps, assume 12 snipers now know your shoe size",
+	},
+	BIOME.SWAMP: {
+		"name":"Swamp",
+		"description":"Good news: The fog hides you. Bad news: It also hiding them",
+	},
+	BIOME.HILL: {
+		"name":"Hill",
+		"description":"High ground is power... until everyone sees you.",
+	},
+	BIOME.MOUNTAIN: {
+		"name":"Mountain",
+		"description":"If you’re not gasping for air, you’re not high enough... or already dead.",
+	},
+	BIOME.RIVER: {
+		"name":"River",
+		"description":"Fish here have seen more corpses than a coroner. Don’t make eye contact.",
+	},
+	BIOME.ROAD: {
+		"name":"Road",
+		"description":"Abandoned trucks: 10% loot, 90% ambush. Good luck!",
+	}
+}
+
 enum POI_TYPE {
 	NONE,
 	SAWMILL,
@@ -33,25 +64,25 @@ enum POI_TYPE {
 const POI_DATA = {
 	POI_TYPE.SAWMILL: {
 		"name": "Sawmill",
-		"description": "Abandoned sawmill with remnants of equipment. {color=#aaff00}Tools+.{/color}",
+		"description": "Abandoned sawmill with remnants of equipment. [color=#aaff00]Tools+.[/color]",
 		"biomes": [BIOME.FOREST], # Биомы для руин
 		"tile_id": 20 # Координаты тайла руин в атласе
 	},
 	POI_TYPE.VILLAGE: {
 		"name": "Village",
-		"description": "People used to live here. {color=#aaff00}Food+{/color}",
+		"description": "People used to live here. [color=#aaff00]Food+[/color]",
 		"biomes": [BIOME.CLEARING, BIOME.HILL], # Биомы для деревни
 		"tile_id": 21  # Координаты тайла деревни в атласе
 	},
 	POI_TYPE.CAMP: {
 		"name": "Camp",
-		"description": "Someone hiding here... {color=#aaff00}Enemy+{/color}",
+		"description": "Someone hiding here... [color=#aaff00]Enemy+[/color]",
 		"biomes": ["ANY"], # "ANY" - лагерь в любом биоме
 		"tile_id": 22 # Координаты тайла лагеря в атласе
 	},
 	POI_TYPE.HUNTER: {
 		"name": "Hunter House",
-		"description": "Just house in forest, nothing suspicious. {color=#aaff00}Weapon+{/color}",
+		"description": "Just house in forest, nothing suspicious. [color=#aaff00]Weapon+[/color]",
 		"biomes": [BIOME.HILL, BIOME.FOREST], # Биомы для дома охотника
 		"tile_id": 23 # Координаты тайла дома охотника в атласе
 	},
@@ -419,8 +450,8 @@ func generate_roads():
 		if path[cell] in poi_cells:
 			print("ТутPoi")
 			continue
-		set_custom_biome(path[cell],6,41) #Временно потом поменять 41 на 40
-		await get_tree().create_timer(0.5).timeout #Временно потом убрать
+		#set_custom_biome(path[cell],6,41) #Временно потом поменять 41 на 40
+		#await get_tree().create_timer(0.5).timeout #Временно потом убрать
 		set_custom_biome(path[cell],6,40) #Временно потом убрать
 		road_cells.append(path[cell])
 	navigation.init(self)
@@ -443,8 +474,8 @@ func generate_roads():
 			if path[cell] in poi_cells:
 				print("ТутPoi")
 				continue
-			set_custom_biome(path[cell],6,41) #Временно потом поменять 41 на 40
-			await get_tree().create_timer(0.5).timeout #Временно потом убрать
+			#set_custom_biome(path[cell],6,41) #Временно потом поменять 41 на 40
+			#await get_tree().create_timer(0.5).timeout #Временно потом убрать
 			set_custom_biome(path[cell],6,40) #Временно потом убрать
 			road_cells.append(path[cell])
 		navigation.init(self)
@@ -507,3 +538,17 @@ func get_random_poi_coordinates_and_remove_from_list(poi_array: Array[Dictionary
 	# Удаление происходит ТОЛЬКО из локального массива poi_array, полученного от collect_poi_data().
 
 	return random_poi_data # 6. Возвращаем данные об удаленной POI (словарь)
+
+func get_tile_tooltip_data(cell: Vector2i) -> Dictionary:
+	var data = {}
+	if cell in poi_cells:
+		data.type = "poi"
+		data.poi_type = poi_map[cell.x][cell.y]
+		data.name = POI_DATA[data.poi_type].name
+		data.descr = POI_DATA[data.poi_type].description
+	else:
+		data.type = "biome"	
+		data.biome_type = biome_map[cell.x][cell.y]
+		data.name = TERRAIN_DATA[data.biome_type].name
+		data.descr = TERRAIN_DATA[data.biome_type].description
+	return data

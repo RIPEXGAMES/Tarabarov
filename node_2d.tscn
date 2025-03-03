@@ -60,10 +60,10 @@ anchor_bottom = 1.0
 offset_top = -75.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_constants/margin_left = 50
-theme_override_constants/margin_right = 50
+theme_override_constants/margin_left = 300
+theme_override_constants/margin_right = 300
 theme_override_constants/margin_bottom = 20
 
-[node name="PanelContainer" parent="CanvasLayer/MarginContainer" instance=ExtResource("8_38o5e")]
+[node name="Tooltip" parent="CanvasLayer/MarginContainer" instance=ExtResource("8_38o5e")]
 z_index = 300
 layout_mode = 2
