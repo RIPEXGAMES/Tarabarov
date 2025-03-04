@@ -1,26 +1,12 @@
 [gd_scene load_steps=3 format=3 uid="uid://bolw0iafnehng"]
 
+[ext_resource type="StyleBox" uid="uid://52sg5fw2k6km" path="res://UI_Style.tres" id="1_chdk2"]
 [ext_resource type="FontFile" uid="uid://d0dceg0j1riyv" path="res://Textures/Roboto-VariableFont_wdth,wght.ttf" id="2_bla77"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_uxokw"]
-bg_color = Color(0.1, 0.1, 0.1, 0.9)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.5, 0.5, 0.5, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-shadow_color = Color(0, 0, 0, 0.3)
-shadow_size = 4
-shadow_offset = Vector2(2, 2)
 
 [node name="PanelContainer" type="PanelContainer"]
 offset_right = 147.0
-offset_bottom = 96.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_uxokw")
+offset_bottom = 95.0
+theme_override_styles/panel = ExtResource("1_chdk2")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 2
@@ -45,5 +31,6 @@ vertical_alignment = 1
 layout_mode = 2
 theme_override_fonts/normal_font = ExtResource("2_bla77")
 bbcode_enabled = true
-text = "[center]Лес[/center]"
+text = "[center]Лес[/center] 
+jandsadadsadad"
 fit_content = true

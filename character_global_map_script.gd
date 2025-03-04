@@ -12,9 +12,11 @@ var is_moving: bool = false  # В движении ли персонаж
 var world_map: TileMapLayer
 var many_times_moved = 0
 
+@onready var timer: PanelContainer = $"../CanvasLayer/MarginContainer2/PanelContainer"
 
 func _ready() -> void:
 	update_action_points(move_points)
+	timer.update(move_points)
 	fog_of_war_tilemap.update_fog_of_war(world_map.local_to_map(position), view_range)
 
 func setup_map_reference(map: TileMapLayer):
@@ -47,6 +49,7 @@ func move_to_next_point():
 		var move_cost = world_map.get_move_cost(next_cell)
 		move_points -= move_cost
 		update_action_points(move_points)
+		timer.update(move_points)
 		
 	fog_of_war_tilemap.update_fog_of_war(next_cell, view_range)
 	

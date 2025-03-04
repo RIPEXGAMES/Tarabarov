@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://chwixw10hbyl4"]
+[gd_scene load_steps=12 format=3 uid="uid://chwixw10hbyl4"]
 
 [ext_resource type="TileSet" uid="uid://bmkx88y74xjpv" path="res://world_tileset.tres" id="1_5s4ky"]
 [ext_resource type="Script" path="res://Main.gd" id="1_dsmn6"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" uid="uid://bolw0iafnehng" path="res://Tooltip.tscn" id="8_38o5e"]
 [ext_resource type="TileSet" uid="uid://domrej5h1xpe" path="res://fog_of_war_tileset.tres" id="8_o5dyj"]
 [ext_resource type="Script" path="res://FogOfWar.gd" id="9_d35ji"]
+[ext_resource type="PackedScene" uid="uid://c3vc4a06yj8sh" path="res://Timer.tscn" id="11_dlmb4"]
 
 [node name="Node2D" type="Node2D" node_paths=PackedStringArray("world_map")]
 script = ExtResource("1_dsmn6")
@@ -68,4 +69,17 @@ theme_override_constants/margin_bottom = 20
 
 [node name="Tooltip" parent="CanvasLayer/MarginContainer" instance=ExtResource("8_38o5e")]
 z_index = 300
+layout_mode = 2
+
+[node name="MarginContainer2" type="MarginContainer" parent="CanvasLayer"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -115.0
+offset_right = 199.0
+grow_vertical = 0
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="PanelContainer" parent="CanvasLayer/MarginContainer2" instance=ExtResource("11_dlmb4")]
 layout_mode = 2

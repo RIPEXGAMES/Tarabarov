@@ -42,9 +42,11 @@ func _input(event: InputEvent):
 			clear_highlight()
 			return
 		if tile_pos != last_cell:
+			print("a")
 			#--------------------------------Реализуем tooltip----------------------------------
 			if tween.is_running():
 				tween.kill()
+
 			if fog_of_war.is_tile_visible(tile_pos):
 				create_tween().tween_property(tooltip_panel,"modulate:a",1,0.1)
 				var data = world_map.get_tile_tooltip_data(tile_pos)
@@ -65,6 +67,7 @@ func _input(event: InputEvent):
 				else:
 					clear_highlight()
 					path_cost_label.visible = false # Если клетка непроходима, просто убираем подсветку
+				last_cell = tile_pos
 			#-----------------------------------------------------------------------------------
 			
 
