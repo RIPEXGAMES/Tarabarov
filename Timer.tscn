@@ -2,7 +2,7 @@
 
 [ext_resource type="StyleBox" uid="uid://52sg5fw2k6km" path="res://UI_Style.tres" id="1_6emqk"]
 [ext_resource type="FontFile" uid="uid://d0dceg0j1riyv" path="res://Textures/Roboto-VariableFont_wdth,wght.ttf" id="2_4o3kb"]
-[ext_resource type="Script" path="res://Timer.gd" id="2_lwawe"]
+[ext_resource type="Script" uid="uid://3agptd12268x" path="res://Timer.gd" id="2_lwawe"]
 
 [node name="PanelContainer" type="PanelContainer"]
 offset_right = 100.0

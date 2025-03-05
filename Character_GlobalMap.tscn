@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://1cggujd8egd7"]
 
-[ext_resource type="Script" path="res://character_global_map_script.gd" id="1_k0aa5"]
+[ext_resource type="Script" uid="uid://d1avvfynx075k" path="res://character_global_map_script.gd" id="1_k0aa5"]
 [ext_resource type="Texture2D" uid="uid://bju6omg1tb8tp" path="res://Flag.png" id="2_iel1c"]
 [ext_resource type="FontFile" uid="uid://d0dceg0j1riyv" path="res://Textures/Roboto-VariableFont_wdth,wght.ttf" id="3_16j3g"]
 
