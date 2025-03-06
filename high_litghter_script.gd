@@ -103,7 +103,7 @@ func update_highlight(cell_pos: Vector2i):
 		modulate = Color(1, 1, 1, 1) # Белый цвет
 		set_cell(cell_pos, 0, highlight_atlas_coord)
 		
-		path_cost_label.text = str(path_cost)
+		path_cost_label.text = Utils._minutesToHHMM(path_cost)
 		path_cost_label.visible = true
 		
 		# Позиционируем Label в центре клетки
