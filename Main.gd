@@ -21,7 +21,7 @@ func _ready():
 
 	# Перебираем все используемые клетки на карте
 	for cell in world_map.get_used_cells():
-		if world_map.get_move_cost_no_fog(cell) == 1: # Проверяем вес клетки
+		if world_map.get_move_cost_no_fog(cell) <= 10: # Проверяем вес клетки
 			possible_start_cells.append(cell) # **Добавляем клетку в массив possible_start_cells**
 			found_start_cell = true # Можно оставить, но по факту, если массив не пуст, значит клетки найдены
 

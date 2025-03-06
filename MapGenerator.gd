@@ -11,13 +11,13 @@ enum BIOME {
 }
 
 var TERRAIN_COST = {
-	BIOME.CLEARING: 2,
-	BIOME.FOREST: 3,
-	BIOME.SWAMP: 4,
-	BIOME.HILL: 5,
-	BIOME.MOUNTAIN: 6,
-	BIOME.RIVER: 9999,
-	BIOME.ROAD: 1
+	BIOME.CLEARING: 10,
+	BIOME.FOREST: 15,
+	BIOME.SWAMP: 20,
+	BIOME.HILL: 25,
+	BIOME.MOUNTAIN: 30,
+	BIOME.RIVER: 999999,
+	BIOME.ROAD: 5
 }
 
 const TERRAIN_DATA = {
@@ -400,10 +400,8 @@ func get_move_cost(cell: Vector2i) -> int:
 	
 		
 	if fog_of_war.is_tile_visible(cell): # Проверяем видимость клетки через туман войны
-		if cell in road_cells:  # Проверяем наличие дороги
-			return 1
 		if poi_map.size() > cell.x && poi_map[0].size() > cell.y && poi_map[cell.x][cell.y] != POI_TYPE.NONE: # **Проверяем, есть ли POI на видимой клетке**
-			return 1 # **Если есть POI, стоимость перемещения всегда 1**
+			return 5 # **Если есть POI, стоимость перемещения всегда 1**
 		else: # **Если на видимой клетке нет POI, определяем стоимость по биому**
 			var biome = biome_map[cell.x][cell.y]
 			return TERRAIN_COST.get(biome, 1)  # По умолчанию 1
@@ -412,8 +410,6 @@ func get_move_cost(cell: Vector2i) -> int:
 
 func get_move_cost_no_fog(cell: Vector2i) -> int:
 	
-	if cell in road_cells:  # Проверяем наличие дороги
-		return 1
 	var biome = biome_map[cell.x][cell.y]
 	return TERRAIN_COST.get(biome, 1)  # По умолчанию 1
 

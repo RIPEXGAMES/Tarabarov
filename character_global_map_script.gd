@@ -6,7 +6,7 @@ extends CharacterBody2D
 
 @export var move_speed: float = 200.0  # Пикселей в секунду
 @export var view_range: int = 3
-var move_points: int = 300  # Очки движения за ход
+var move_points: int = 1000  # Очки движения за ход
 var current_path: Array[Vector2i] = []  # Текущий путь
 var is_moving: bool = false  # В движении ли персонаж
 var world_map: TileMapLayer
