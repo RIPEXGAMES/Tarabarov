@@ -11,6 +11,9 @@ extends Node2D
 
 var player
 
+var is_cell_selected: bool = false
+var selected_cell
+
 func _ready():
 	
 	
@@ -66,7 +69,18 @@ func _input(event):
 			if !path.is_empty():
 				var path_cost = calculate_path_cost(path) # Используем calculate_path_cost из Main.gd (и теперь идентичную в character_global.gd)
 				if path_cost <= player.move_points:
-					player.start_movement(path)
+					if is_cell_selected and target_cell == selected_cell:
+						player.start_movement(path)
+						is_cell_selected = false
+					elif !is_cell_selected:
+						selected_cell = target_cell
+						is_cell_selected = true
+					elif is_cell_selected and target_cell != selected_cell:
+						selected_cell = target_cell
+					else:
+						print("ERROR IN SELECT MAIN.GD")
+						selected_cell = null
+						is_cell_selected = false
 				else:
 					print("Not enough move points! Path cost: ", path_cost, ", available points: ", player.move_points)
 			else:

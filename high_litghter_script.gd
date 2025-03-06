@@ -40,7 +40,7 @@ func set_main(main_object):
 	main = main_object # Сохраняем переданный объект Main.gd в переменной main
 	
 func _input(event: InputEvent):
-	if event is InputEventMouseMotion:
+	if event is InputEventMouseMotion and !main.is_cell_selected:
 		var mouse_pos: Vector2 = get_global_mouse_position()
 		var tile_pos: Vector2i = world_map.local_to_map(mouse_pos)
 
@@ -68,7 +68,6 @@ func _input(event: InputEvent):
 				var data = world_map.get_tile_tooltip_data(tile_pos)
 				tooltip_text_name.text = data.name
 				tooltip_text_descr.text = "[center]" + data.descr + "[/center]"
-				
 				update_highlight(tile_pos)
 				last_cell = tile_pos
 			else:
@@ -132,6 +131,7 @@ func clear_highlight():
 	modulate = Color(1, 1, 1, 1) # Возвращаем белый цвет по умолчанию (хотя это не обязательно)
 	
 func manual_update():
+	print("MANUAL UPDATE")
 	var mouse_pos: Vector2 = get_global_mouse_position()
 	var tile_pos: Vector2i = world_map.local_to_map(mouse_pos)
 	
