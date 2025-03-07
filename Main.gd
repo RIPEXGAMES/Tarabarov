@@ -77,6 +77,7 @@ func _input(event):
 						is_cell_selected = true
 					elif is_cell_selected and target_cell != selected_cell:
 						selected_cell = target_cell
+						highlight_tilemap.manual_update()
 					else:
 						print("ERROR IN SELECT MAIN.GD")
 						selected_cell = null
@@ -85,6 +86,9 @@ func _input(event):
 					print("Not enough move points! Path cost: ", path_cost, ", available points: ", player.move_points)
 			else:
 				print("Path is empty or not found.")
+	if event.is_action("right_click") and !player.is_moving:
+		if is_cell_selected:
+			is_cell_selected = false
 
 func calculate_path_cost(path: Array[Vector2i]) -> int: # Функция расчета стоимости пути
 	var total_cost = 0
