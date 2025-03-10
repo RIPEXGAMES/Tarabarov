@@ -12,7 +12,7 @@ var is_moving: bool = false  # В движении ли персонаж
 var world_map: TileMapLayer
 var many_times_moved = 0
 
-@onready var timer: PanelContainer = $"../CanvasLayer/MarginContainer2/PanelContainer"
+@onready var timer: Control = $"../CanvasLayer/MarginContainer2/PanelContainer"
 
 func _ready() -> void:
 	update_action_points(move_points)

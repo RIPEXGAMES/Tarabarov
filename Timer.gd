@@ -1,6 +1,6 @@
-extends PanelContainer
+extends Control
 
-@onready var label: Label = $MarginContainer/Label
+@onready var label: Label = $PanelContainer/MarginContainer/Label
 
 
 func update(minutes: int):

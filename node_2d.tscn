@@ -44,8 +44,8 @@ position = Vector2(400, 200)
 zoom = Vector2(5, 5)
 script = ExtResource("3_yx5f8")
 tilemap_layer = NodePath("../WorldMap")
-min_zoom = 5.0
-max_zoom = 8.0
+min_zoom = 3.0
+max_zoom = 7.0
 
 [node name="FogOfWarTilemap" type="TileMapLayer" parent="." node_paths=PackedStringArray("world_map")]
 z_index = 5
