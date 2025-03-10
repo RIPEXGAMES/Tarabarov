@@ -18,6 +18,11 @@ func _ready() -> void:
 	update_action_points(move_points)
 	timer.update(move_points)
 	fog_of_war_tilemap.update_fog_of_war(world_map.local_to_map(position), view_range)
+	
+func _input(event):
+	if event.is_action_pressed("space") and !current_path.is_empty() and is_moving:
+		current_path = []
+		
 
 func setup_map_reference(map: TileMapLayer):
 	world_map = map
