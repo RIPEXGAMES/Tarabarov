@@ -21,9 +21,7 @@ var path_highlighted_cells = [] # Список клеток, подсвечен�
 
 var last_cell: Vector2i = Vector2i(-1, -1)
 
-var hover_sounds = [
-	preload("res://SoundDesign/Guitar_Pedal_B.wav")
-]
+var hover_sound = preload("res://SoundDesign/Guitar_Pedal_B.wav")
 var last_hover_time = 0
 var hover_sound_cooldown = 0.05
 
@@ -55,9 +53,9 @@ func _input(event: InputEvent):
 			if time_since_last_hover >= hover_sound_cooldown:
 				# Код проигрывания звука
 				if fog_of_war.is_tile_visible(tile_pos):
-					play_hover_sound(true)
+					Utils._playSound(hover_sound,0.8,1.2,-20)
 				else:
-					play_hover_sound(false)
+					Utils._playSound(hover_sound,0.5,0.9,-20)
 				last_hover_time = Time.get_ticks_msec() / 1000.0
 			#--------------------------------Реализуем tooltip----------------------------------
 			if tween.is_running():
@@ -161,26 +159,3 @@ func clear_path_highlight():
 	for cell in path_highlighted_cells:
 		erase_cell(cell)
 	path_highlighted_cells.clear() # Очищаем список подсвеченных клеток пути
-	
-	
-func play_hover_sound(isNotFogged: bool):
-	if hover_sounds.is_empty():
-		return
-	
-	var sound_player = AudioStreamPlayer.new()
-	add_child(sound_player)
-	
-	# Выбираем случайный звук
-	var random_sound = hover_sounds[randi() % hover_sounds.size()]
-	sound_player.stream = random_sound
-	
-	# Случайная небольшая вариация высоты звука
-	if isNotFogged:
-		sound_player.pitch_scale = randf_range(0.8, 1.2)
-	else:
-		sound_player.pitch_scale = randf_range(0.5, 0.9)
-	sound_player.volume_db = -20
-	sound_player.play()
-	
-	# Автоматическое удаление проигрывателя после завершения
-	sound_player.connect("finished", func(): sound_player.queue_free())

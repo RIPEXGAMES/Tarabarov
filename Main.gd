@@ -20,6 +20,8 @@ var unselect_sound = preload("res://SoundDesign/Guitar_Pedal_B_5.wav")
 func _ready():
 	
 	
+	
+	
 	# 1. Выбираем стартовую позицию на карте (например, клетка 0,0)
 	var start_cell = Vector2i(0, 0) # **Запасная стартовая клетка по умолчанию (на случай, если не найдем клетку с весом 1)**
 	var possible_start_cells = [] # **Новый массив для хранения всех подходящих стартовых клеток**
@@ -76,25 +78,25 @@ func _input(event):
 						player.start_movement(path)
 						is_cell_selected = false
 					elif !is_cell_selected:
-						play_select_sound(select_sound)
+						Utils._playSound(select_sound,0.8,1.2,-15)
 						selected_cell = target_cell
 						is_cell_selected = true
 					elif is_cell_selected and target_cell != selected_cell:
-						play_select_sound(select_sound)
+						Utils._playSound(select_sound,0.8,1.2,-15)
 						selected_cell = target_cell
 						highlight_tilemap.manual_update()
 					else:
 						print("ERROR IN SELECT MAIN.GD")
 						selected_cell = null
 						is_cell_selected = false
-						play_select_sound(unselect_sound)
+						Utils._playSound(unselect_sound,0.8,1.2,-15)
 				else:
 					print("Not enough move points! Path cost: ", path_cost, ", available points: ", player.move_points)
 			else:
 				print("Path is empty or not found.")
 	if event.is_action("right_click") and !player.is_moving:
 		if is_cell_selected:
-			play_select_sound(unselect_sound)
+			Utils._playSound(unselect_sound,0.8,1.2,-15)
 			is_cell_selected = false
 
 func calculate_path_cost(path: Array[Vector2i]) -> int: # Функция расчета стоимости пути
@@ -105,19 +107,3 @@ func calculate_path_cost(path: Array[Vector2i]) -> int: # Функция рас�
 		var cell_cost = world_map.get_move_cost(cell)
 		total_cost += cell_cost
 	return total_cost
-
-func play_select_sound(sound):
-	
-	var sound_player = AudioStreamPlayer.new()
-	add_child(sound_player)
-	
-	# Выбираем случайный звук
-	sound_player.stream = sound
-	
-	# Случайная небольшая вариация высоты звука
-	sound_player.pitch_scale = randf_range(0.8, 1.2)
-	sound_player.volume_db = -15
-	sound_player.play()
-	
-	# Автоматическое удаление проигрывателя после завершения
-	sound_player.connect("finished", func(): sound_player.queue_free())
