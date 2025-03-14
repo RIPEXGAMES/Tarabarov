@@ -14,7 +14,10 @@ func show_context_pos(cell: Vector2i):
 	# Устанавливаем начальную позицию
 	position = world_map.map_to_local(cell)
 	position.y -= size.y/2 * max_scale  # Учитываем новый масштаб
-	position.x += 6
+	if cell.x >= world_map.Width - 2:
+		position.x -= 25
+	else:
+		position.x += 6
 	
 	# Устанавливаем начальные значения для анимации
 	modulate.a = 0  # Прозрачность

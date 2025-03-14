@@ -33,6 +33,7 @@ theme_override_font_sizes/font_size = 4
 text = "00:01"
 horizontal_alignment = 1
 vertical_alignment = 1
+metadata/_edit_use_anchors_ = true
 
 [node name="WorldMap" type="TileMapLayer" parent="."]
 texture_filter = 1
@@ -47,7 +48,7 @@ zoom = Vector2(5, 5)
 script = ExtResource("3_yx5f8")
 tilemap_layer = NodePath("../WorldMap")
 min_zoom = 3.0
-max_zoom = 7.0
+max_zoom = 5.0
 
 [node name="FogOfWarTilemap" type="TileMapLayer" parent="." node_paths=PackedStringArray("world_map")]
 z_index = 5
