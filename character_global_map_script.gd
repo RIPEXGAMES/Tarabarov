@@ -13,6 +13,7 @@ var world_map: TileMapLayer
 var many_times_moved = 0
 
 @onready var timer: Control = $"../CanvasLayer/MarginContainer2/PanelContainer"
+@onready var contextMenu: PanelContainer = $"../ContextMenu"
 
 func _ready() -> void:
 	update_action_points(move_points)
@@ -31,6 +32,8 @@ func setup_map_reference(map: TileMapLayer):
 func start_movement(path: Array[Vector2i]):
 	if path.is_empty() || is_moving:
 		return
+	if path.size() <= 1:
+		path = []
 	current_path = path
 	is_moving = true # Используем calculate_path_cost (теперь правильно модифицированную)
 
@@ -42,10 +45,14 @@ func start_movement(path: Array[Vector2i]):
 # Перемещение к следующей точке пути
 func move_to_next_point():
 	if current_path.is_empty():		
+		if world_map.local_to_map(position) in world_map.poi_cells and not contextMenu.visible:
+			contextMenu.show_context_pos(world_map.local_to_map(position))
 		is_moving = false
 		many_times_moved = 0
 		highlight.manual_update()
 		return
+	if contextMenu.visible:
+		contextMenu.hide_context_pos()
 	
 	var next_cell = current_path.pop_front()
 	var target_pos = world_map.map_to_local(next_cell)

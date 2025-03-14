@@ -129,7 +129,6 @@ func clear_highlight():
 	modulate = Color(1, 1, 1, 1) # Возвращаем белый цвет по умолчанию (хотя это не обязательно)
 	
 func manual_update():
-	print("MANUAL UPDATE")
 	var mouse_pos: Vector2 = get_global_mouse_position()
 	var tile_pos: Vector2i = world_map.local_to_map(mouse_pos)
 	

@@ -9,6 +9,7 @@ extends Node2D
 @onready var camera: Camera2D = $Camera2D
 
 
+
 var player
 
 var is_cell_selected: bool = false
