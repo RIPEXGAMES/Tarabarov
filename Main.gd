@@ -7,7 +7,7 @@ extends Node2D
 @onready var highlight_tilemap: TileMapLayer = $HighLitghter
 @onready var fog_of_war: TileMapLayer = $FogOfWarTilemap
 @onready var camera: Camera2D = $Camera2D
-
+@onready var context_menu: PanelContainer = $"ContextMenu"
 
 
 var player
@@ -65,7 +65,7 @@ func _ready():
 	highlight_tilemap.set_main(self)
 	
 func _input(event):
-	if event.is_action_pressed("left_click") and !player.is_moving:
+	if event.is_action_pressed("left_click") and !player.is_moving and !context_menu.selected:
 		var navigation = world_map.get_navigation()
 		var mouse_pos = get_global_mouse_position()
 		var target_cell = world_map.local_to_map(mouse_pos)

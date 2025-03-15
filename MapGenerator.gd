@@ -546,5 +546,5 @@ func get_tile_tooltip_data(cell: Vector2i) -> Dictionary:
 		data.type = "biome"	
 		data.biome_type = biome_map[cell.x][cell.y]
 		data.name = TERRAIN_DATA[data.biome_type].name
-		data.descr = TERRAIN_DATA[data.biome_type].description + "\n[color=#aaff00]Move cost: " + str(TERRAIN_COST[data.biome_type]) + "[/color]"
+		data.descr = TERRAIN_DATA[data.biome_type].description + "\n[color=#aaff00]Move cost: " + Utils._minutesToHHMM(TERRAIN_COST[data.biome_type]) + "[/color]"
 	return data

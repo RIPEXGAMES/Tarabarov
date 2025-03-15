@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://chwixw10hbyl4"]
+[gd_scene load_steps=16 format=3 uid="uid://chwixw10hbyl4"]
 
 [ext_resource type="TileSet" uid="uid://bmkx88y74xjpv" path="res://world_tileset.tres" id="1_5s4ky"]
 [ext_resource type="Script" uid="uid://kp5xeo2kvu56" path="res://Main.gd" id="1_dsmn6"]
@@ -13,6 +13,8 @@
 [ext_resource type="PackedScene" uid="uid://c3vc4a06yj8sh" path="res://Timer.tscn" id="11_dlmb4"]
 [ext_resource type="Script" uid="uid://d33n26te7u2y1" path="res://context_menu.gd" id="12_0h7mo"]
 [ext_resource type="Texture2D" uid="uid://g1ikn2rwt501" path="res://UI/ContextMenu/Button.png" id="12_x0ka3"]
+[ext_resource type="Texture2D" uid="uid://cta680c2dg6rn" path="res://UI/ContextMenu/Button_Pressed.png" id="14_d2bti"]
+[ext_resource type="Texture2D" uid="uid://c33k1hyhybnvg" path="res://UI/ContextMenu/Button_Obvodka.png" id="14_nr8wp"]
 
 [node name="Node2D" type="Node2D" node_paths=PackedStringArray("world_map")]
 script = ExtResource("1_dsmn6")
@@ -88,23 +90,33 @@ theme_override_constants/margin_bottom = 20
 layout_mode = 2
 
 [node name="ContextMenu" type="PanelContainer" parent="."]
-visible = false
 z_index = 300
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_right = 47.0
+offset_right = 24.0
 offset_bottom = 18.0
-grow_horizontal = 2
-grow_vertical = 2
 scale = Vector2(0.4, 0.4)
 script = ExtResource("12_0h7mo")
 
 [node name="NinePatchRect" type="NinePatchRect" parent="ContextMenu"]
 layout_mode = 2
 texture = ExtResource("12_x0ka3")
+patch_margin_left = 18
+patch_margin_top = 9
+patch_margin_right = 4
+patch_margin_bottom = 9
+
+[node name="Pressed" type="NinePatchRect" parent="ContextMenu"]
+visible = false
+layout_mode = 2
+texture = ExtResource("14_d2bti")
+patch_margin_left = 18
+patch_margin_top = 9
+patch_margin_right = 4
+patch_margin_bottom = 9
+
+[node name="Obvodka" type="NinePatchRect" parent="ContextMenu"]
+visible = false
+layout_mode = 2
+texture = ExtResource("14_nr8wp")
 patch_margin_left = 18
 patch_margin_top = 9
 patch_margin_right = 4
@@ -121,4 +133,3 @@ theme_override_constants/margin_bottom = 3
 layout_mode = 2
 theme_override_fonts/font = ExtResource("4_1fv8m")
 theme_override_font_sizes/font_size = 10
-text = "Enter"
