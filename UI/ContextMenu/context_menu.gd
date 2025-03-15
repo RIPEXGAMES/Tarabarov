@@ -26,6 +26,10 @@ func _ready():
 	mouse_exited.connect(_on_mouse_exited)
 	gui_input.connect(_on_gui_input)
 
+func _input(event: InputEvent):
+	if event.is_action_pressed("interact"):
+		_on_panel_clicked()
+
 func show_context_pos(cell: Vector2i):
 	# Останавливаем предыдущий tween, если он еще активен
 	current_cell = cell

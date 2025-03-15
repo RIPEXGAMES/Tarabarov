@@ -11,7 +11,7 @@
 [ext_resource type="TileSet" uid="uid://domrej5h1xpe" path="res://fog_of_war_tileset.tres" id="8_o5dyj"]
 [ext_resource type="Script" uid="uid://cnfmfjamxlsuh" path="res://FogOfWar.gd" id="9_d35ji"]
 [ext_resource type="PackedScene" uid="uid://c3vc4a06yj8sh" path="res://Timer.tscn" id="11_dlmb4"]
-[ext_resource type="Script" uid="uid://d33n26te7u2y1" path="res://context_menu.gd" id="12_0h7mo"]
+[ext_resource type="Script" uid="uid://d33n26te7u2y1" path="res://UI/ContextMenu/context_menu.gd" id="12_0h7mo"]
 [ext_resource type="Texture2D" uid="uid://g1ikn2rwt501" path="res://UI/ContextMenu/Button.png" id="12_x0ka3"]
 [ext_resource type="Texture2D" uid="uid://cta680c2dg6rn" path="res://UI/ContextMenu/Button_Pressed.png" id="14_d2bti"]
 [ext_resource type="Texture2D" uid="uid://c33k1hyhybnvg" path="res://UI/ContextMenu/Button_Obvodka.png" id="14_nr8wp"]
