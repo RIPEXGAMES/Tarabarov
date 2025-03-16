@@ -239,7 +239,6 @@ func generate_rivers():
 		
 		if biome_id != 4:
 			continue
-		print("Generate river at x: ", start_x, " y: ", start_y, " at biome: ", biome_id)
 		# Генерация реки
 		biome_map[start_x][start_y] = BIOME.RIVER
 		await generate_single_river(start_x, start_y+1)
@@ -323,9 +322,7 @@ func generate_poi():
 			queue_redraw()
 			extr_a_placed = true
 			placed_extr_a_cell = cell
-			print("EXTR_A placed at random edge cell: ", cell)
 			poi_cells.append(cell)
-			print("PoiCellsWithA: ", poi_cells)
 			edge_cells.erase(cell)
 			break
 
@@ -338,9 +335,7 @@ func generate_poi():
 				set_cell(cell, POI_DATA[POI_TYPE.EXTR_B].tile_id, Vector2i(0,0))
 				queue_redraw()
 				extr_b_placed = true
-				print("EXTR_B placed at random edge cell: ", cell)
 				poi_cells.append(cell)
-				print("PoiCellsWithB: ", poi_cells)
 				edge_cells.erase(cell)
 				break
 
@@ -388,7 +383,6 @@ func generate_poi():
 		poi_cells.append(cell)
 		
 		queue_redraw()
-	print("PoiCellsFinal: ", poi_cells)
 
 func get_map_width_pixels():
 	return Width * tile_set.tile_size.x
@@ -437,14 +431,11 @@ func generate_roads():
 	var poi_start_2 = get_random_poi_coordinates_and_remove_from_list(collected_poi_data)
 	var poi1cell = Vector2i(poi_start_1["x"],poi_start_1["y"])
 	var poi2cell = Vector2i(poi_start_2["x"],poi_start_2["y"])
-	print("Старт: ", poi1cell)
-	print("Финиш: ", poi2cell)
 	var path = navigation.find_path_with_cost_no_fog(poi1cell,poi2cell)
 	path.pop_front()
 	path.pop_back()
 	for cell in range(path.size()):
 		if path[cell] in poi_cells:
-			print("ТутPoi")
 			continue
 		#set_custom_biome(path[cell],6,41) #Временно потом поменять 41 на 40
 		#await get_tree().create_timer(0.5).timeout #Временно потом убрать
@@ -461,14 +452,11 @@ func generate_roads():
 		poi2 = get_random_poi_coordinates_and_remove_from_list(collected_poi_data)
 		poi1cell = Vector2i(poi1["x"],poi1["y"])
 		poi2cell = Vector2i(poi2["x"],poi2["y"])
-		print("Старт: ", poi1cell)
-		print("Финиш: ", poi2cell)
 		path = navigation.find_path_with_cost_no_fog(poi1cell,poi2cell)
 		path.pop_front()
 		path.pop_back()
 		for cell in range(path.size()):
 			if path[cell] in poi_cells:
-				print("ТутPoi")
 				continue
 			#set_custom_biome(path[cell],6,41) #Временно потом поменять 41 на 40
 			#await get_tree().create_timer(0.5).timeout #Временно потом убрать
@@ -517,14 +505,12 @@ func get_random_poi_coordinates_and_remove_from_list(poi_array: Array[Dictionary
 	"""
 
 	if poi_array.is_empty(): # 2. Проверяем, пустой ли массив
-		printerr("get_random_poi_coordinates_and_remove_from_list(): Не найдено POI, кроме NONE.")
 		return {} # Возвращаем пустой словарь, если POI не найдены
 
 	var random_index: int = randi() % poi_array.size() # 3. Получаем случайный индекс в пределах массива
 	var random_poi_data: Dictionary = poi_array[random_index] # 4. Получаем данные POI по случайному индексу
 
 	if random_poi_data == null: # Дополнительная проверка на null (для надежности)
-		printerr("get_random_poi_coordinates_and_remove_from_list(): Ошибка при выборе случайной POI.")
 		return {} # Возвращаем пустой словарь в случае ошибки
 
 	# 5. Удаляем элемент из массива poi_array по случайному индексу

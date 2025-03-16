@@ -87,14 +87,9 @@ func _input(event):
 						selected_cell = target_cell
 						highlight_tilemap.manual_update()
 					else:
-						print("ERROR IN SELECT MAIN.GD")
 						selected_cell = null
 						is_cell_selected = false
 						Utils._playSound(unselect_sound,0.8,1.2,-15)
-				else:
-					print("Not enough move points! Path cost: ", path_cost, ", available points: ", player.move_points)
-			else:
-				print("Path is empty or not found.")
 	if event.is_action("right_click") and !player.is_moving:
 		if is_cell_selected:
 			Utils._playSound(unselect_sound,0.8,1.2,-15)

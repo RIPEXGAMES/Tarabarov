@@ -137,4 +137,3 @@ func _on_panel_clicked() -> void:
 	
 	# Здесь можно добавить любую дополнительную логику, 
 	# которая должна выполняться при клике
-	print("PanelContainer clicked at cell: ", current_cell)
