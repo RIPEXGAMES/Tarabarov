@@ -11,41 +11,41 @@ const EVENT_WEIGHTS = {
 }
 
 const TILE_MODIFIERS = {
-	"forest": {"combat": 1.5, "loot": 1.2, "trap": 1.3, "anomaly": 1.0},
-	"clearing": {"combat": 1.8, "loot": 0.7, "trap": 0.5, "anomaly": 0.3},
-	"swamp": {"combat": 0.8, "loot": 1.1, "trap": 2.0, "anomaly": 2.0},
-	"hill": {"combat": 1.2, "loot": 1.4, "trap": 1.1, "anomaly": 0.9},
-	"mountain": {"combat": 0.6, "loot": 1.5, "trap": 1.4, "anomaly": 1.0},
-	"road": {"combat": 2.0, "loot": 1.0, "trap": 1.6, "anomaly": 0.5}
+	"Forest": {"combat": 1.5, "loot": 1.2, "trap": 1.3, "anomaly": 1.0},
+	"Clearing": {"combat": 1.8, "loot": 0.7, "trap": 0.5, "anomaly": 0.3},
+	"Swamp": {"combat": 0.8, "loot": 1.1, "trap": 2.0, "anomaly": 2.0},
+	"Hill": {"combat": 1.2, "loot": 1.4, "trap": 1.1, "anomaly": 0.9},
+	"Mountain": {"combat": 0.6, "loot": 1.5, "trap": 1.4, "anomaly": 1.0},
+	"Road": {"combat": 2.0, "loot": 1.0, "trap": 1.6, "anomaly": 0.5}
 }
 
 const ENEMY_TYPE_CHANCES = {
-	"forest": {
+	"Forest": {
 		"animal": 50,    # 50% шанс животных
 		"human": 30,     # 30% шанс людей
 		"mutant": 20     # 20% шанс мутантов
 	},
-	"clearing": {
+	"Clearing": {
 		"animal": 20,
 		"human": 70,
 		"mutant": 10
 	},
-	"swamp": {
+	"Swamp": {
 		"animal": 30,
 		"human": 20,
 		"mutant": 50
 	},
-	"hill": {
+	"Hill": {
 		"animal": 40,
 		"human": 50,
 		"mutant": 10
 	},
-	"mountain": {
+	"Mountain": {
 		"animal": 60,
 		"human": 30,
 		"mutant": 10
 	},
-	"road": {
+	"Road": {
 		"animal": 10,
 		"human": 80,
 		"mutant": 10
@@ -69,6 +69,7 @@ func _ready():
 func check_for_random_event(tile_pos:Vector2i, tile_data: Dictionary) -> void:
 	tiles_since_last_event += 1
 	if tile_pos.distance_to(last_event_tile) <= MIN_TILES_BETWEEN_EVENTS:
+		print("A")
 		return
 	var event_chance = EVENT_CHANCE_DEFAULT * (1.0 + tiles_since_last_event * 0.05)
 	
@@ -76,25 +77,31 @@ func check_for_random_event(tile_pos:Vector2i, tile_data: Dictionary) -> void:
 	print("С последнего ивента прошло ", tiles_since_last_event, " тайлов")
 	
 	if randf() <= event_chance:
-		var event_type = _get_weighted_event_type(tile_data.name)
-		var event_data = _generate_event_data(event_type, tile_pos, tile_data.name)
-		
-		last_event_tile = tile_pos
-		tiles_since_last_event = 0
-		
-		emit_signal("random_event_triggered",event_data)
-		
-		print("Дата ивента: ", event_data)
-	
+		if tile_data.type == "biome":
+			var event_type = _get_weighted_event_type(tile_data.name)
+			var event_data = _generate_event_data(event_type, tile_pos, tile_data.name)
+			
+			last_event_tile = tile_pos
+			tiles_since_last_event = 0
+			
+			emit_signal("random_event_triggered",event_data)
+			
+			print("Дата ивента: ", event_data)
+		else:
+			print("Ивент заблокирован из за POI")
 func _get_weighted_event_type(tile_type: String) -> String:
 		
 	var weights = EVENT_WEIGHTS.duplicate()
-	
+	print("----------------------------")
+	print("TILE_MODIFIERS: ",TILE_MODIFIERS)
+	print("TIle_type: ", tile_type)
+	print("----------------------------")
 	if TILE_MODIFIERS.has(tile_type):
 		var modifiers = TILE_MODIFIERS[tile_type]
 		for event_type in modifiers:
 			if weights.has(event_type):
 				weights[event_type] *= modifiers[event_type]
+				print(weights[event_type], " *= ", modifiers[event_type])
 	
 	var total_weight = 0
 	for weight in weights.values():
@@ -133,7 +140,8 @@ func _generate_event_data(event_type: String, tile_position: Vector2i, tile_type
 	}
 	match event_type:
 		"combat":
-			var enemies = _generate_combat_enemies(event_data["difficulty"], tile_type)
+			#var enemies = _generate_combat_enemies(event_data["difficulty"], tile_type)
+			var enemies = _select_enemy_type_for_tile(tile_type)
 			event_data["enemies"] = enemies
 			event_data["ambush"] = randf() < 0.3  # 30% шанс засады
 			

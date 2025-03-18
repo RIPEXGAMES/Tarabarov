@@ -11,18 +11,20 @@ var current_path: Array[Vector2i] = []  # Текущий путь
 var is_moving: bool = false  # В движении ли персонаж
 var world_map: TileMapLayer
 var many_times_moved = 0
+var start_pos: Vector2i
 
 @onready var timer: Control = $"../CanvasLayer/MarginContainer2/PanelContainer"
 @onready var contextMenu: PanelContainer = $"../ContextMenu"
 
 func _ready() -> void:
+	EventManager.random_event_triggered.connect(_on_random_event_triggered)
 	update_action_points(move_points)
 	timer.update(move_points)
 	fog_of_war_tilemap.update_fog_of_war(world_map.local_to_map(position), view_range)
 	
 func _input(event):
 	if event.is_action_pressed("space") and !current_path.is_empty() and is_moving:
-		current_path = []
+		_stop_movement()
 		
 
 func setup_map_reference(map: TileMapLayer):
@@ -30,6 +32,7 @@ func setup_map_reference(map: TileMapLayer):
 	
 # Вызывается для начала движения
 func start_movement(path: Array[Vector2i]):
+	start_pos = world_map.local_to_map(position)
 	if path.is_empty() || is_moving:
 		return
 	if path.size() <= 1:
@@ -73,6 +76,8 @@ func move_to_next_point():
 	tween.tween_callback(move_to_next_point)
 	many_times_moved += 1
 	highlight.manual_update()
+	if start_pos != next_cell:
+		EventManager.check_for_random_event(next_cell,world_map.get_tile_tooltip_data(next_cell))
 	
 
 func update_action_points(points: int):
@@ -90,3 +95,9 @@ func calculate_path_cost(path: Array[Vector2i]) -> int: # Функция рас�
 		var cell_cost = world_map.get_move_cost(cell)
 		total_cost += cell_cost # Отладка общей стоимости (изменено название для ясности)
 	return total_cost
+
+func _on_random_event_triggered(event_data: Dictionary) -> void:
+	_stop_movement()
+
+func _stop_movement() -> void:
+	current_path = []
