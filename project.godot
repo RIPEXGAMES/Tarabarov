@@ -24,6 +24,10 @@ EventManager="*res://Scripts/Systems/Event_Manager.gd"
 
 window/stretch/mode="canvas_items"
 
+[global_group]
+
+player=""
+
 [input]
 
 mouse_wheel_up={

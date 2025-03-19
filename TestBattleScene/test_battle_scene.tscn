@@ -1,0 +1,52 @@
+[gd_scene load_steps=9 format=3 uid="uid://cmfe8qpnkb6mk"]
+
+[ext_resource type="Script" uid="uid://ba602m7vrsrtq" path="res://test_scene.gd" id="1_2los4"]
+[ext_resource type="Script" uid="uid://y6v7dpu0gxo2" path="res://TestBattleScene/turn_manager.gd" id="2_t7rjw"]
+[ext_resource type="Script" uid="uid://x7vre0i8o7c2" path="res://TestBattleScene/player_character.gd" id="3_ykj4l"]
+[ext_resource type="Texture2D" uid="uid://byguib6fw1n7q" path="res://Textures/Road1.png" id="4_5svcf"]
+[ext_resource type="Texture2D" uid="uid://b7cj70ij40a" path="res://Textures/Road.png" id="5_fpu6m"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fpu6m"]
+size = Vector2(16, 16)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_a8obr"]
+size = Vector2(16, 16)
+
+[sub_resource type="NavigationPolygon" id="NavigationPolygon_fpu6m"]
+vertices = PackedVector2Array(1233.47, 750.719, -218.227, 710.289, -162.742, -16, 1269.52, -16)
+polygons = Array[PackedInt32Array]([PackedInt32Array(0, 1, 2, 3)])
+outlines = Array[PackedVector2Array]([PackedVector2Array(-172, -26, 1280, -26, 1243, 761, -229, 720)])
+
+[node name="Node2D" type="Node2D"]
+script = ExtResource("1_2los4")
+
+[node name="TurnManager" type="Node" parent="."]
+script = ExtResource("2_t7rjw")
+
+[node name="PlayerCharacter" type="CharacterBody2D" parent="." groups=["player"]]
+motion_mode = 1
+script = ExtResource("3_ykj4l")
+
+[node name="Sprite2D" type="Sprite2D" parent="PlayerCharacter"]
+texture = ExtResource("4_5svcf")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PlayerCharacter"]
+shape = SubResource("RectangleShape2D_fpu6m")
+
+[node name="NavigationAgent2D" type="NavigationAgent2D" parent="PlayerCharacter"]
+
+[node name="Obstacles" type="Node2D" parent="."]
+
+[node name="StaticBody2D" type="StaticBody2D" parent="Obstacles"]
+position = Vector2(40, 50)
+
+[node name="Sprite2D" type="Sprite2D" parent="Obstacles/StaticBody2D"]
+texture = ExtResource("5_fpu6m")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Obstacles/StaticBody2D"]
+shape = SubResource("RectangleShape2D_a8obr")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="NavigationRegion2D" type="NavigationRegion2D" parent="."]
+navigation_polygon = SubResource("NavigationPolygon_fpu6m")
