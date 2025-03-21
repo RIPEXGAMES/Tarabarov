@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3 uid="uid://ghlwvb6jwha4"]
+
+[ext_resource type="Script" uid="uid://b54q5eaynxmba" path="res://TestMapGenerator/map_generator.gd" id="1_y2a0y"]
+[ext_resource type="TileSet" uid="uid://dj1qpws6i2u1k" path="res://TestMapGenerator/LocalMapTilesetLandscape.tres" id="2_pdnih"]
+[ext_resource type="TileSet" uid="uid://b7u34v51mphio" path="res://TestMapGenerator/LocalMapTilesetObstacles.tres" id="3_i4ln5"]
+
+[node name="Node2D" type="Node2D"]
+
+[node name="MapGenerator" type="Node" parent="."]
+script = ExtResource("1_y2a0y")
+
+[node name="Landscape" type="TileMapLayer" parent="."]
+tile_set = ExtResource("2_pdnih")
+
+[node name="Obstacles" type="TileMapLayer" parent="."]
+tile_set = ExtResource("3_i4ln5")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(4, 4)

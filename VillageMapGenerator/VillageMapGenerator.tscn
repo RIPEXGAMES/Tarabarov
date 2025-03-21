@@ -1,9 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://cslx5cig1j4c"]
-
-[ext_resource type="Script" uid="uid://d1l2uyrwls5we" path="res://village_map_generator.gd" id="1_h4iv2"]
-
-[node name="Main" type="Node2D"]
-
-[node name="VillageMapGenerator" type="Node2D" parent="."]
-script = ExtResource("1_h4iv2")
-vegetation_density = 0.0

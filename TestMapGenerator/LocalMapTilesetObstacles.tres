@@ -1,0 +1,24 @@
+[gd_resource type="TileSet" load_steps=5 format=3 uid="uid://b7u34v51mphio"]
+
+[ext_resource type="Texture2D" uid="uid://l21ywf86u8mp" path="res://TestMapGenerator/LocalMapSpriteSheeObstaclest.png" id="1_25rjr"]
+[ext_resource type="Texture2D" uid="uid://b1f8kmooaijae" path="res://TestMapGenerator/LocalMapSpriteSheeObstaclesTrees.png" id="2_umnut"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_25rjr"]
+texture = ExtResource("1_25rjr")
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+4:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_222ux"]
+texture = ExtResource("2_umnut")
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+4:0/0 = 0
+
+[resource]
+sources/0 = SubResource("TileSetAtlasSource_25rjr")
+sources/10 = SubResource("TileSetAtlasSource_222ux")
