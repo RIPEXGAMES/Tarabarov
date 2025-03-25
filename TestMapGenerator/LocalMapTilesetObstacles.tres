@@ -1,7 +1,9 @@
-[gd_resource type="TileSet" load_steps=5 format=3 uid="uid://b7u34v51mphio"]
+[gd_resource type="TileSet" load_steps=9 format=3 uid="uid://b7u34v51mphio"]
 
 [ext_resource type="Texture2D" uid="uid://l21ywf86u8mp" path="res://TestMapGenerator/LocalMapSpriteSheeObstaclest.png" id="1_25rjr"]
-[ext_resource type="Texture2D" uid="uid://b1f8kmooaijae" path="res://TestMapGenerator/LocalMapSpriteSheeObstaclesTrees.png" id="2_umnut"]
+[ext_resource type="Texture2D" uid="uid://1yr02p6x3i6y" path="res://TestMapGenerator/LocalMapSpriteSheeObstaclesTrees.png" id="2_umnut"]
+[ext_resource type="Texture2D" uid="uid://1dba47ct1367" path="res://TestMapGenerator/LocalMapSpriteSheeObstaclesStone.png" id="3_222ux"]
+[ext_resource type="Texture2D" uid="uid://dcea37uorecrc" path="res://TestMapGenerator/LocalMapSpriteSheeObstaclesFallenTrees.png" id="4_pgebn"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_25rjr"]
 texture = ExtResource("1_25rjr")
@@ -11,7 +13,7 @@ texture = ExtResource("1_25rjr")
 3:0/0 = 0
 4:0/0 = 0
 
-[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_222ux"]
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_umnut"]
 texture = ExtResource("2_umnut")
 0:0/0 = 0
 1:0/0 = 0
@@ -19,6 +21,25 @@ texture = ExtResource("2_umnut")
 3:0/0 = 0
 4:0/0 = 0
 
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_pgebn"]
+texture = ExtResource("3_222ux")
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+4:0/0 = 0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_xd7c1"]
+texture = ExtResource("4_pgebn")
+0:0/0 = 0
+1:0/0 = 0
+2:0/0 = 0
+3:0/0 = 0
+4:0/0 = 0
+5:0/0 = 0
+
 [resource]
 sources/0 = SubResource("TileSetAtlasSource_25rjr")
-sources/10 = SubResource("TileSetAtlasSource_222ux")
+sources/10 = SubResource("TileSetAtlasSource_umnut")
+sources/11 = SubResource("TileSetAtlasSource_pgebn")
+sources/12 = SubResource("TileSetAtlasSource_xd7c1")

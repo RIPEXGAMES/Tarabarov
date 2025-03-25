@@ -1,8 +1,10 @@
-[gd_scene load_steps=4 format=3 uid="uid://ghlwvb6jwha4"]
+[gd_scene load_steps=6 format=3 uid="uid://ghlwvb6jwha4"]
 
 [ext_resource type="Script" uid="uid://b54q5eaynxmba" path="res://TestMapGenerator/map_generator.gd" id="1_y2a0y"]
 [ext_resource type="TileSet" uid="uid://dj1qpws6i2u1k" path="res://TestMapGenerator/LocalMapTilesetLandscape.tres" id="2_pdnih"]
+[ext_resource type="Script" uid="uid://x6hh1jg531uk" path="res://TestMapGenerator/landscape.gd" id="3_2kra3"]
 [ext_resource type="TileSet" uid="uid://b7u34v51mphio" path="res://TestMapGenerator/LocalMapTilesetObstacles.tres" id="3_i4ln5"]
+[ext_resource type="Script" uid="uid://bd2y5mic8tssf" path="res://camera_controller.gd" id="4_octll"]
 
 [node name="Node2D" type="Node2D"]
 
@@ -11,11 +13,17 @@ script = ExtResource("1_y2a0y")
 
 [node name="Landscape" type="TileMapLayer" parent="."]
 tile_set = ExtResource("2_pdnih")
+script = ExtResource("3_2kra3")
 
 [node name="Obstacles" type="TileMapLayer" parent="."]
 tile_set = ExtResource("3_i4ln5")
 
 [node name="UI" type="CanvasLayer" parent="."]
 
-[node name="Camera2D" type="Camera2D" parent="."]
-zoom = Vector2(4, 4)
+[node name="Camera2D" type="Camera2D" parent="." node_paths=PackedStringArray("tilemap_layer")]
+position = Vector2(400, 200)
+zoom = Vector2(5, 5)
+script = ExtResource("4_octll")
+tilemap_layer = NodePath("../Landscape")
+min_zoom = 3.0
+max_zoom = 4.0

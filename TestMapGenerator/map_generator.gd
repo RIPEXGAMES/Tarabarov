@@ -2,8 +2,8 @@ class_name MapGenerator
 extends Node
 
 # Настройки генерации карты
-@export var map_width: int = 30
-@export var map_height: int = 30
+@export var map_width: int = 25
+@export var map_height: int = 25
 @export var tree_density: float = 0.1  # Плотность деревьев (0-1)
 @export var rock_density: float = 0.01  # Плотность камней (0-1)
 @export var fallen_tree_density: float = 0.03  # Плотность поваленных деревьев
@@ -229,7 +229,7 @@ func generate_obstacles():
 				
 			# Генерируем камни с заданной плотностью
 			if randf() < rock_density:
-				obstacles_layer.set_cell(Vector2i(x, y), 0, Vector2i(ObstacleType.ROCK - 10, 0))
+				obstacles_layer.set_cell(Vector2i(x, y), ObstacleType.ROCK, Vector2i(randi() % 5, 0))
 				update_walkability(x, y, ObstacleType.ROCK, false)
 				continue
 			
@@ -253,12 +253,13 @@ func generate_fallen_trees():
 		# Проверяем, что обе клетки свободны для размещения и не около дороги
 		if is_tile_walkable(x, y) and is_tile_walkable(x + 1, y) and \
 		   not left_index in no_obstacles_cells and not right_index in no_obstacles_cells:
+			var ran_index = randi() % 3
 			# Размещаем левую часть
-			obstacles_layer.set_cell(Vector2i(x, y), 0, Vector2i(ObstacleType.FALLEN_TREE_LEFT - 10, 0))
+			obstacles_layer.set_cell(Vector2i(x, y), ObstacleType.FALLEN_TREE_LEFT, Vector2i(ran_index * 2, 0))
 			update_walkability(x, y, ObstacleType.FALLEN_TREE_LEFT, false)
 			
 			# Размещаем правую часть
-			obstacles_layer.set_cell(Vector2i(x + 1, y), 0, Vector2i(ObstacleType.FALLEN_TREE_RIGHT - 10, 0))
+			obstacles_layer.set_cell(Vector2i(x + 1, y), ObstacleType.FALLEN_TREE_LEFT, Vector2i(ran_index * 2 + 1, 0))
 			update_walkability(x + 1, y, ObstacleType.FALLEN_TREE_RIGHT, false)
 
 func update_walkability(x: int, y: int, tile_type, is_landscape: bool):

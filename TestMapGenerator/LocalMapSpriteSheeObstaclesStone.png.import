@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1yr02p6x3i6y"
-path="res://.godot/imported/LocalMapSpriteSheeObstaclesTrees.png-64ba7cb3744d27af6c7976e612e709b5.ctex"
+uid="uid://1dba47ct1367"
+path="res://.godot/imported/LocalMapSpriteSheeObstaclesStone.png-8fa4ae3688eca363b96880e05fd98005.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://TestMapGenerator/LocalMapSpriteSheeObstaclesTrees.png"
-dest_files=["res://.godot/imported/LocalMapSpriteSheeObstaclesTrees.png-64ba7cb3744d27af6c7976e612e709b5.ctex"]
+source_file="res://TestMapGenerator/LocalMapSpriteSheeObstaclesStone.png"
+dest_files=["res://.godot/imported/LocalMapSpriteSheeObstaclesStone.png-8fa4ae3688eca363b96880e05fd98005.ctex"]
 
 [params]
 
