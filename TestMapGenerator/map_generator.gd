@@ -89,7 +89,7 @@ func generate_base_landscape():
 				tile_type = LandscapeType.DIRT
 				
 			# Размещаем тайл
-			landscape_layer.set_cell(Vector2i(x, y), 0, Vector2i(tile_type, 0))
+			landscape_layer.set_cell(Vector2i(x, y), tile_type, Vector2i(randi() % 10, 0))
 			
 			# Обновляем проходимость
 			update_walkability(x, y, tile_type, true)
@@ -105,7 +105,7 @@ func generate_water_bodies():
 			for y in range(map_height):
 				var noise_val = noise.get_noise_2d(x, y)
 				if noise_val > 0.3:  # Порог для водных участков
-					landscape_layer.set_cell(Vector2i(x, y), 0, Vector2i(LandscapeType.WATER, 0))
+					landscape_layer.set_cell(Vector2i(x, y), 10, Vector2i(LandscapeType.WATER, 0))
 					update_walkability(x, y, LandscapeType.WATER, true)
 
 func generate_paths():
@@ -124,7 +124,7 @@ func generate_paths():
 		# Рисуем тропинку и подготавливаем область вокруг нее
 		for point in path_points:
 			# Основная тропинка
-			landscape_layer.set_cell(point, 0, Vector2i(LandscapeType.PATH, 0))
+			landscape_layer.set_cell(point, 10, Vector2i(LandscapeType.PATH, 0))
 			update_walkability(point.x, point.y, LandscapeType.PATH, true)
 			
 			# Обрабатываем область вокруг дороги
@@ -137,7 +137,7 @@ func generate_paths():
 				
 				# Проверяем границы
 				if wider_point.y >= 0 and wider_point.y < map_height:
-					landscape_layer.set_cell(wider_point, 0, Vector2i(LandscapeType.PATH, 0))
+					landscape_layer.set_cell(wider_point, 10, Vector2i(LandscapeType.PATH, 0))
 					update_walkability(wider_point.x, wider_point.y, LandscapeType.PATH, true)
 					
 					# Обрабатываем область вокруг расширенной дороги
@@ -164,7 +164,7 @@ func prepare_path_surroundings(path_x: int, path_y: int):
 			
 			# Если текущий тайл не является дорогой, меняем его на грязь
 			if current_cell_atlas.x != LandscapeType.PATH:
-				landscape_layer.set_cell(current_cell_pos, 0, Vector2i(LandscapeType.DIRT, 0))
+				landscape_layer.set_cell(current_cell_pos, LandscapeType.DIRT, Vector2i(randi() % 10, 0))
 				update_walkability(x, y, LandscapeType.DIRT, true)
 
 # Алгоритм Брезенхема для рисования линии между двумя точками
