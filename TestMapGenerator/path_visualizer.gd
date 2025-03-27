@@ -15,6 +15,11 @@ extends Node2D
 # Размер точек пути
 @export var point_size: float = 5.0
 
+# Текстуры для точек пути
+@export var path_point_texture: Texture2D
+@export var preview_point_texture: Texture2D
+@export var unavailable_point_texture: Texture2D
+
 var character: Character
 var landscape_layer: TileMapLayer
 
@@ -36,6 +41,14 @@ func _ready():
 	else:
 		print("Landscape layer found")
 	
+	# Если текстуры не назначены, можно использовать дефолтные
+	if not path_point_texture:
+		push_warning("Path point texture not assigned. Using default circle drawing.")
+	if not preview_point_texture:
+		preview_point_texture = path_point_texture
+	if not unavailable_point_texture:
+		unavailable_point_texture = path_point_texture
+	
 	print("PathVisualizer initialized")
 
 func _draw():
@@ -43,20 +56,24 @@ func _draw():
 		return
 		
 	# Рисуем текущий путь
-	draw_path(character.get_current_path(), path_color)
+	draw_path(character.get_current_path(), path_color, path_point_texture)
 	
 	# Рисуем предварительный путь при наведении мыши
 	var preview_path = character.get_preview_path()
 	var color = preview_color
+	var texture = preview_point_texture
 	
-	# Если путь слишком длинный (не хватает AP), меняем цвет
+	# Если путь слишком длинный (не хватает AP), меняем цвет и текстуру
 	if preview_path.size() > character.remaining_ap:
 		color = unavailable_color
+		texture = unavailable_point_texture
 		
-	draw_path(preview_path, color)
+	draw_path(preview_path, color, texture)
 
-# Вспомогательная функция для отрисовки пути
-func draw_path(path_to_draw: Array, color: Color):
+# Обновленная функция для отрисовки пути с текстурами
+# Обновленная функция для отрисовки пути с текстурами
+# Обновленная функция для отрисовки пути с текстурами без модуляции цвета
+func draw_path(path_to_draw: Array, line_color: Color, point_texture: Texture2D = null):
 	if path_to_draw.size() > 0:
 		var points = []
 		
@@ -69,11 +86,18 @@ func draw_path(path_to_draw: Array, color: Color):
 		
 		# Рисуем линию пути
 		for i in range(points.size() - 1):
-			draw_line(to_local(points[i]), to_local(points[i + 1]), color, 2.0)
+			draw_line(to_local(points[i]), to_local(points[i + 1]), line_color, 2.0)
 		
 		# Рисуем точки на пути
 		for point in points:
-			draw_circle(to_local(point), point_size, color)
+			if point_texture:
+				# Используем текстуру вместо круга без модуляции цветом
+				var texture_size = point_texture.get_size()
+				var position = to_local(point) - texture_size / 2  # Центрируем текстуру
+				draw_texture(point_texture, position)  # Не передаем цвет, чтобы текстура отображалась как есть
+			else:
+				# Если текстура не назначена, используем круг
+				draw_circle(to_local(point), point_size, line_color)
 
 func _process(_delta):
 	# Обновляем отрисовку пути

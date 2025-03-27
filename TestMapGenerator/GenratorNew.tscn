@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://ghlwvb6jwha4"]
+[gd_scene load_steps=17 format=3 uid="uid://ghlwvb6jwha4"]
 
 [ext_resource type="Script" uid="uid://b54q5eaynxmba" path="res://TestMapGenerator/map_generator.gd" id="1_y2a0y"]
 [ext_resource type="Script" uid="uid://bheex1rvq8arc" path="res://TestMapGenerator/game_contoller.gd" id="2_8ecrj"]
@@ -11,7 +11,10 @@
 [ext_resource type="Script" uid="uid://bv5pnfr8k7lrl" path="res://TestMapGenerator/character.gd" id="5_f5uek"]
 [ext_resource type="Script" uid="uid://bpfm65006suf0" path="res://TestMapGenerator/highlight.gd" id="6_3h22p"]
 [ext_resource type="Script" uid="uid://2i8aqfve35u5" path="res://TestMapGenerator/path_visualizer.gd" id="9_o1fp3"]
+[ext_resource type="Texture2D" uid="uid://rgeo0oly223m" path="res://TestMapGenerator/Dot_Path.png" id="11_3ptqc"]
 [ext_resource type="Script" uid="uid://ccgkh4udit6v7" path="res://TestMapGenerator/ui.gd" id="11_sxreq"]
+[ext_resource type="Texture2D" uid="uid://jntmhc252c3b" path="res://TestMapGenerator/Dot_Path_Preview.png" id="12_2oqp7"]
+[ext_resource type="Texture2D" uid="uid://c8elo46ogmi26" path="res://TestMapGenerator/Dot_Path_Unavaliable.png" id="13_bv7kr"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_f5uek"]
 size = Vector2(16, 16)
@@ -47,6 +50,9 @@ map_generator = NodePath("../MapGenerator")
 
 [node name="PathVisualizer" type="Node2D" parent="."]
 script = ExtResource("9_o1fp3")
+path_point_texture = ExtResource("11_3ptqc")
+preview_point_texture = ExtResource("12_2oqp7")
+unavailable_point_texture = ExtResource("13_bv7kr")
 
 [node name="UI" type="CanvasLayer" parent="."]
 script = ExtResource("11_sxreq")
