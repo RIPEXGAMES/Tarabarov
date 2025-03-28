@@ -84,7 +84,7 @@ func update_game_state():
 func _on_end_turn_button_pressed():
 	if character:
 		print("End turn button pressed")
-		character.request_end_turn()
+		character.end_turn()
 
 # Подключаем сигнал изменения хода
 func _on_game_controller_turn_changed():

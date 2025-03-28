@@ -20,10 +20,14 @@ var target_cell: Vector2i = Vector2i.ZERO
 var path: Array[Vector2i] = []
 # Находится ли персонаж в движении
 var is_moving: bool = false
-# Оставшиеся очки действий в текущем ходу
+# Оставшиеся очки действия в текущем ходу
 var remaining_ap: int = action_points
 # Индикатор текущего маршрута (опционально)
 var path_preview: Array[Vector2i] = []
+# Выбранная клетка
+var selected_cell: Vector2i = Vector2i(-1, -1)
+# Флаг, указывающий на то, выбрана ли клетка
+var is_cell_selected: bool = false
 
 # Связь с генератором карты для получения информации о проходимости
 @onready var map_generator: MapGenerator = get_node("../MapGenerator")
@@ -67,43 +71,64 @@ func _ready():
 	print("Character._ready() completed, AP: ", remaining_ap)
 
 func _input(event):
-	# Отладочная информация
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		print("Mouse clicked at: ", get_global_mouse_position())
-		print("Game controller: ", game_controller, ", can_player_act: ", game_controller.can_player_act() if game_controller else "N/A")
-	
-	 # Обрабатываем только если сейчас ход игрока
+	# Обрабатываем только если сейчас ход игрока
 	if not game_controller or not game_controller.can_player_act():
-		if event is InputEventMouseButton and event.pressed:
-			print("Not player's turn or GameController not found")
 		return
 	
-	if event is InputEventMouseButton:
-		if event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			# Получаем координаты клика относительно тайлмапа
-			var mouse_pos = get_global_mouse_position()
-			# Поскольку теперь мы работаем с TileMapLayer, преобразуем координаты напрямую
-			var clicked_cell = landscape_layer.local_to_map(landscape_layer.to_local(mouse_pos))
+	# Обработка левого клика
+	if event.is_action_pressed("left_click") and not is_moving:
+		print("Left click detected")
+		var mouse_pos = get_global_mouse_position()
+		var clicked_cell = landscape_layer.local_to_map(landscape_layer.to_local(mouse_pos))
+		
+		print("Clicked cell: ", clicked_cell)
+		
+		# Проверяем, можно ли пройти в эту клетку
+		if map_generator.is_tile_walkable(clicked_cell.x, clicked_cell.y):
+			print("Cell is walkable")
 			
-			print("Clicked cell: ", clicked_cell)
+			# Находим путь к этой клетке
+			var potential_path = find_path(current_cell, clicked_cell)
+			print("Path found, length: ", potential_path.size())
 			
-			# Проверяем, можно ли пройти в эту клетку
-			if map_generator.is_tile_walkable(clicked_cell.x, clicked_cell.y):
-				print("Cell is walkable")
-				# Находим путь к этой клетке
-				var potential_path = find_path(current_cell, clicked_cell)
-				print("Path found, length: ", potential_path.size())
-				
-				# Проверяем, хватает ли AP для движения
-				if potential_path.size() <= remaining_ap:
+			# Проверяем, хватает ли AP для движения
+			if potential_path.size() <= remaining_ap:
+				# Если клетка уже выбрана и это та же самая клетка - начинаем движение
+				if is_cell_selected and clicked_cell == selected_cell:
 					path = potential_path
 					if path.size() > 0:
 						is_moving = true
 						print("Starting movement, path: ", path)
+						is_cell_selected = false
+				# Если клетка еще не выбрана - выбираем её
+				elif not is_cell_selected:
+					selected_cell = clicked_cell
+					is_cell_selected = true
+					print("Cell selected: ", selected_cell)
+				# Если выбрана другая клетка - меняем выбор
+				elif is_cell_selected and clicked_cell != selected_cell:
+					selected_cell = clicked_cell
+					print("New cell selected: ", selected_cell)
+				# Иначе (хотя этот случай не должен происходить) - сбрасываем выбор
 				else:
-					print("Недостаточно очков действия. Требуется: ", potential_path.size(), ", Доступно: ", remaining_ap)
+					selected_cell = Vector2i(-1, -1)
+					is_cell_selected = false
+					print("Cell selection reset")
 			else:
-				print("Cell is not walkable")
+				print("Недостаточно очков действия. Требуется: ", potential_path.size(), ", Доступно: ", remaining_ap)
+		else:
+			print("Cell is not walkable")
+	
+	# Обработка правого клика - сброс выбранной клетки
+	if event.is_action_pressed("right_click") and not is_moving:
+		print("Character: Right click detected")
+		if is_cell_selected:
+			print("Character: Clearing selected cell: ", selected_cell)
+			selected_cell = Vector2i(-1, -1)
+			is_cell_selected = false
+			path_preview.clear()
+			# Помечаем событие как обработанное, чтобы камера не реагировала
+			get_viewport().set_input_as_handled()
 	
 	# Обновляем предварительный просмотр пути при движении мыши
 	if event is InputEventMouseMotion:
@@ -116,7 +141,7 @@ func _input(event):
 			path_preview.clear()
 	
 	# Кнопка для завершения хода (например, пробел)
-	if event is InputEventKey and event.pressed and event.keycode == KEY_SPACE:
+	if event.is_action_pressed("ui_select") or (event is InputEventKey and event.pressed and event.keycode == KEY_SPACE):
 		print("End turn triggered")
 		end_turn()
 
@@ -141,7 +166,6 @@ func place_at_valid_starting_position():
 	# Если не нашли проходимую клетку, выводим ошибку
 	push_error("Не найдено ни одной проходимой клетки для размещения персонажа")
 
-# Поиск пути от начальной клетки до конечной с использованием A*
 # Поиск пути от начальной клетки до конечной с использованием A*
 func find_path(start_cell: Vector2i, end_cell: Vector2i) -> Array[Vector2i]:
 	var result_path: Array[Vector2i] = []
@@ -275,6 +299,10 @@ func move_along_path(delta):
 		# Уменьшаем очки действия
 		remaining_ap -= 1
 		print("Reached cell, AP left: ", remaining_ap)
+		# Обновляем выделение доступных тайлов
+		var highlight_layer = get_node_or_null("../HighlightLayer")
+		if highlight_layer:
+			highlight_layer.update_reachable_tiles()
 	else:
 		# Иначе продолжаем двигаться в направлении следующей точки
 		global_position += direction * distance_to_move
@@ -298,8 +326,18 @@ func end_turn():
 	is_moving = false
 	path.clear()
 	
+	# Сбрасываем выбранную клетку при завершении хода
+	selected_cell = Vector2i(-1, -1)
+	is_cell_selected = false
+	
 	# Сбрасываем очки действия
 	remaining_ap = action_points
+	
+	 # Обновляем выделение доступных тайлов
+	var highlight_layer = get_node_or_null("../HighlightLayer")
+	if highlight_layer:
+		highlight_layer.update_reachable_tiles()
+	
 	
 	# Уведомляем контроллер игры о завершении хода
 	emit_signal("move_finished")
@@ -311,6 +349,14 @@ func get_current_path() -> Array:
 # Получение предварительного пути (для визуализации при наведении)
 func get_preview_path() -> Array:
 	return path_preview
+
+# Получение выбранной клетки (для визуализации)
+func get_selected_cell() -> Vector2i:
+	return selected_cell
+
+# Проверка, выбрана ли клетка
+func has_cell_selected() -> bool:
+	return is_cell_selected
 
 # Метод для завершения хода, вызываемый из внешних источников (например, кнопка UI)
 func request_end_turn():

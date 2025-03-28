@@ -56,11 +56,23 @@ func _input(event):
 	if event is InputEventMouseMotion and is_dragging:
 		handle_drag(event)
 
+	# Начинаем перетаскивание при нажатии правой кнопки
 	if event.is_action_pressed("right_click"):
-		start_drag(event)
+		# Проверяем, выбрана ли клетка у персонажа
+		var character = get_node_or_null("../Character")
+		if character and character.has_cell_selected():
+			# Если клетка выбрана, не начинаем перетаскивание
+			print("Camera: detected selected cell, not starting drag")
+			return
+			
+		print("Camera: Starting drag")
+		is_dragging = true
+		velocity = Vector2.ZERO
 	
+	# Заканчиваем перетаскивание при отпускании правой кнопки
 	if event.is_action_released("right_click"):
-		end_drag()
+		print("Camera: Ending drag")
+		is_dragging = false
 
 func _process(delta):
 	delta_cache = delta  # Кэширование delta для других функций
@@ -132,18 +144,12 @@ func handle_zoom(event: InputEventMouseButton):
 	target_zoom.x += zoom_change
 	target_zoom.y += zoom_change
 
-func start_drag(_event: InputEventMouse):
-	is_dragging = true
-	velocity = Vector2.ZERO
-	get_viewport().set_input_as_handled()
-
-func end_drag():
-	is_dragging = false
-
 func handle_drag(event: InputEventMouseMotion):
-	# Используем кэшированную чувствительность
-	velocity = event.relative * adjusted_sensitivity
-	global_position -= velocity
+	if is_dragging:
+		# Используем кэшированную чувствительность
+		velocity = event.relative * adjusted_sensitivity
+		global_position -= velocity
+		print("Camera: Dragging, relative: ", event.relative, ", velocity: ", velocity)
 
 func apply_inertia():
 	if !is_dragging:

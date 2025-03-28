@@ -78,7 +78,6 @@ func end_enemy_turn():
 
 # Функция для проверки, является ли текущий ход ходом игрока
 func can_player_act() -> bool:
-	print("can_player_act() called, returning: ", is_player_turn)
 	return is_player_turn
 
 # Новый метод для обработки запроса на завершение хода

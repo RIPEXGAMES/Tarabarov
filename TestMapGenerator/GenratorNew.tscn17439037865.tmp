@@ -47,6 +47,9 @@ shape = SubResource("RectangleShape2D_f5uek")
 tile_set = ExtResource("5_ey8tn")
 script = ExtResource("6_3h22p")
 map_generator = NodePath("../MapGenerator")
+character_path = null
+source_id = null
+tile_coords = null
 
 [node name="PathVisualizer" type="Node2D" parent="."]
 script = ExtResource("9_o1fp3")
