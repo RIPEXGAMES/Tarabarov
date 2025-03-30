@@ -1,5 +1,6 @@
-[gd_scene load_steps=17 format=3 uid="uid://ghlwvb6jwha4"]
+[gd_scene load_steps=18 format=3 uid="uid://ghlwvb6jwha4"]
 
+[ext_resource type="Script" uid="uid://x0s5y5mi2u1g" path="res://TestMapGenerator/movement_manger.gd" id="1_2oqp7"]
 [ext_resource type="Script" uid="uid://b54q5eaynxmba" path="res://TestMapGenerator/map_generator.gd" id="1_y2a0y"]
 [ext_resource type="Script" uid="uid://bheex1rvq8arc" path="res://TestMapGenerator/game_contoller.gd" id="2_8ecrj"]
 [ext_resource type="TileSet" uid="uid://dj1qpws6i2u1k" path="res://TestMapGenerator/LocalMapTilesetLandscape.tres" id="2_pdnih"]
@@ -20,6 +21,9 @@
 size = Vector2(16, 16)
 
 [node name="Node2D" type="Node2D"]
+
+[node name="MoveManger" type="Node" parent="."]
+script = ExtResource("1_2oqp7")
 
 [node name="MapGenerator" type="Node" parent="."]
 script = ExtResource("1_y2a0y")
@@ -43,10 +47,9 @@ texture = ExtResource("5_3h22p")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Character"]
 shape = SubResource("RectangleShape2D_f5uek")
 
-[node name="Highlight" type="TileMapLayer" parent="." node_paths=PackedStringArray("map_generator")]
+[node name="Highlight" type="TileMapLayer" parent="."]
 tile_set = ExtResource("5_ey8tn")
 script = ExtResource("6_3h22p")
-map_generator = NodePath("../MapGenerator")
 
 [node name="PathVisualizer" type="Node2D" parent="."]
 script = ExtResource("9_o1fp3")
@@ -87,5 +90,3 @@ position = Vector2(400, 200)
 zoom = Vector2(5, 5)
 script = ExtResource("4_octll")
 tilemap_layer = NodePath("../Landscape")
-min_zoom = 3.0
-max_zoom = 4.0
