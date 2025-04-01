@@ -28,15 +28,16 @@ func _ready():
 		push_error("Character not found!")
 	else:
 		print("Character found")
-		# Соединяем сигналы
-		if character.has_signal("move_finished"):
-			character.connect("move_finished", _on_character_move_finished)
-			print("Connected to character's move_finished signal")
 		
-		# Подключаем сигнал запроса на завершение хода
+		# Подключаем только сигнал запроса на завершение хода
 		if character.has_signal("end_turn_requested"):
 			character.connect("end_turn_requested", _on_character_turn_end_requested)
 			print("Connected to character's end_turn_requested signal")
+		
+		# Сигнал move_finished используем только для дебага, но не для смены хода
+		if character.has_signal("move_finished"):
+			character.connect("move_finished", _on_move_finished_debug)
+			print("Connected to character's move_finished signal (debug only)")
 	
 	# Принудительно устанавливаем ход игрока
 	is_player_turn = true
@@ -45,9 +46,14 @@ func _ready():
 	# Инициализация
 	print("Игра началась. Ход: ", current_turn)
 
-# Обработчик завершения хода
-func _on_character_move_finished():
-	print("Character move finished signal received")
+# Обработчик только для дебага, не меняет ход
+func _on_move_finished_debug():
+	print("Character move finished - debug notification only")
+
+# Обработка запроса на завершение хода - ОСНОВНОЙ метод для смены хода
+func _on_character_turn_end_requested():
+	print("End turn requested by character")
+	
 	# Переключаем ход
 	is_player_turn = false
 	print("Player's turn set to false")
@@ -70,8 +76,3 @@ func end_enemy_turn():
 # Проверка хода игрока
 func can_player_act() -> bool:
 	return is_player_turn
-
-# Обработка запроса на завершение хода
-func _on_character_turn_end_requested():
-	print("End turn requested by character")
-	# Можно добавить проверки или другую логику

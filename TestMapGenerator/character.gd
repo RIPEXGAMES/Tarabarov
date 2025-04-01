@@ -6,6 +6,8 @@ signal move_finished
 signal end_turn_requested
 signal cell_changed(old_cell, new_cell)
 signal path_changed(new_path)
+signal movement_started
+
 
 # Настройки персонажа
 @export var move_speed: float = 4.0
@@ -166,6 +168,9 @@ func start_movement(target_cell: Vector2i):
 	movement_queue = calculated_path.duplicate()
 	is_moving = true
 	
+	# Отправляем сигнал о начале движения
+	emit_signal("movement_started")
+	
 	debug_print("Path calculated: " + str(path))
 	
 	# Запускаем процесс перемещения
@@ -270,11 +275,6 @@ func complete_movement():
 		# Очищаем путь
 		set_path([])
 		emit_signal("move_finished")
-		
-		# Проверяем, закончился ли ход
-		if remaining_ap <= 0:
-			debug_print("No AP left, ending turn")
-			request_end_turn()
 
 # Размещение на начальной позиции
 func place_at_valid_starting_position():
