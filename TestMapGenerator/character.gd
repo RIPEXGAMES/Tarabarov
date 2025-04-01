@@ -9,7 +9,7 @@ signal path_changed(new_path)
 
 # Настройки персонажа
 @export var move_speed: float = 4.0
-@export var action_points: int = 5
+@export var action_points: int = 50
 @export var allow_diagonal: bool = true
 @export var debug_mode: bool = true
 
@@ -189,6 +189,7 @@ func process_movement_queue():
 	animate_move_to_cell(next_cell)
 
 # Анимация перемещения к клетке
+# Анимация перемещения к клетке
 func animate_move_to_cell(target_cell: Vector2i):
 	# Получаем позицию целевой клетки в мировых координатах
 	var target_position = landscape_layer.map_to_local(target_cell)
@@ -219,7 +220,13 @@ func animate_move_to_cell(target_cell: Vector2i):
 	# Обновляем текущую клетку и уменьшаем очки действия
 	var old_cell = current_cell
 	current_cell = target_cell
-	remaining_ap -= 1
+	
+	# Рассчитываем стоимость перемещения
+	var move_cost = 10
+	if abs(direction.x) > 0 and abs(direction.y) > 0:
+		move_cost = 15
+	
+	remaining_ap -= move_cost
 	
 	# Обновляем менеджер
 	move_manager.character_cell = current_cell

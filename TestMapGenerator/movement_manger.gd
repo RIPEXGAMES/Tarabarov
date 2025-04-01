@@ -22,7 +22,7 @@ var map_generator: MapGenerator
 
 # Очки действия персонажа и максимальное количество AP
 var current_ap: int = 0
-var max_ap: int = 5
+var max_ap: int = 50  # Максимум очков действия теперь 50
 
 # Инициализация
 func initialize(mapGen: MapGenerator, startCell: Vector2i, actionPoints: int, maxActionPoints: int):
@@ -99,11 +99,12 @@ func update_available_cells():
 			if !map_generator.is_tile_walkable(next_pos.x, next_pos.y):
 				continue
 				
-			# Стоимость движения (для диагоналей можно сделать выше)
-			var move_cost = 1
-			
-			# Для диагонального движения проверяем, можно ли пройти
+			# Стоимость движения (для диагоналей делаем выше)
+			var move_cost = 10
 			if dir.x != 0 and dir.y != 0:
+				move_cost = 15
+			
+				# Для диагонального движения проверяем, можно ли пройти
 				var x_neighbor = Vector2i(current_pos.x + dir.x, current_pos.y)
 				var y_neighbor = Vector2i(current_pos.x, current_pos.y + dir.y)
 				
@@ -163,8 +164,13 @@ func move_to_selected_cell() -> Array[Vector2i]:
 	
 	var path_copy = current_path.duplicate()
 	
-	# Уменьшаем AP на длину пути
-	current_ap -= current_path.size()
+	# Уменьшаем AP на длину пути с учетом стоимости
+	for i in range(1, path_copy.size()):
+		var dir = path_copy[i] - path_copy[i - 1]
+		if dir.x != 0 and dir.y != 0:
+			current_ap -= 15  # Диагональное движение
+		else:
+			current_ap -= 10  # Обычное движение
 	
 	# Обновляем текущую клетку персонажа
 	character_cell = selected_cell
@@ -238,15 +244,15 @@ func find_path(start_cell: Vector2i, end_cell: Vector2i) -> Array[Vector2i]:
 			if neighbor in cell_to_id:
 				var neighbor_id = cell_to_id[neighbor]
 				
-				# Вес ребра (для диагоналей можно сделать больше)
-				var weight = 1.0
+				# Вес ребра (для диагоналей делаем больше)
+				var weight = 10.0
 				if dir.x != 0 and dir.y != 0:
 					# Проверка для диагоналей
 					var x_neighbor = Vector2i(cell.x + dir.x, cell.y)
 					var y_neighbor = Vector2i(cell.x, cell.y + dir.y)
 					
-					if map_generator.is_tile_walkable(x_neighbor.x, x_neighbor.y) or map_generator.is_tile_walkable(y_neighbor.x, y_neighbor.y):
-						weight = 1.0
+					if map_generator.is_tile_walkable(x_neighbor.x, x_neighbor.y) or map_generator.is_tile_walkable(y_neighbor.y, y_neighbor.y):
+						weight = 15.0
 					else:
 						continue
 				
