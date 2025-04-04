@@ -4,6 +4,8 @@ extends Node
 # Сигналы для оповещения подписчиков
 signal available_cells_updated
 signal path_updated
+signal path_cost_updated(cost)
+
 
 # Массив доступных клеток для перемещения
 var available_cells: Array[Vector2i] = []
@@ -149,6 +151,11 @@ func select_cell(cell: Vector2i) -> bool:
 	
 	selected_cell = cell
 	update_path_to_cell(cell)
+	
+	# Рассчитываем и отправляем стоимость пути
+	var path_cost = calculate_path_cost(current_path)
+	emit_signal("path_cost_updated", path_cost)
+	
 	return true
 
 # Очистка выбора клетки
@@ -156,6 +163,49 @@ func clear_selection():
 	selected_cell = Vector2i(-1, -1)
 	current_path.clear()
 	emit_signal("path_updated")
+	# Отправляем сигнал с нулевой стоимостью при очистке выбора
+	emit_signal("path_cost_updated", 0)
+
+# Расчет стоимости пути
+func calculate_path_cost(path: Array) -> int:
+	var total_cost = 0
+	
+	# Если путь пустой, стоимость равна 0
+	if path.size() == 0:
+		return total_cost
+	
+	# Если путь состоит только из одной точки (первая клетка)
+	if path.size() == 1:
+		# Проверяем, не является ли эта точка текущей позицией персонажа
+		if path[0] != character_cell:
+			# Стоимость перемещения на соседнюю клетку
+			var dir = path[0] - character_cell
+			if dir.x != 0 and dir.y != 0:
+				total_cost = 15  # Диагональное движение
+			else:
+				total_cost = 10  # Обычное движение
+		return total_cost
+	
+	# Добавляем стоимость от текущей позиции персонажа до первой клетки пути
+	var dir_to_first = path[0] - character_cell
+	if dir_to_first.x != 0 and dir_to_first.y != 0:
+		total_cost += 15  # Диагональное движение
+	else:
+		total_cost += 10  # Обычное движение
+	
+	# Считаем стоимость каждого шага пути
+	for i in range(1, path.size()):
+		var from = path[i-1]
+		var to = path[i]
+		var dir = to - from
+		
+		# Диагональное движение стоит 15, обычное - 10
+		if dir.x != 0 and dir.y != 0:
+			total_cost += 15  # Диагональное движение
+		else:
+			total_cost += 10  # Обычное движение
+	
+	return total_cost
 
 # Перемещение персонажа в выбранную клетку
 func move_to_selected_cell() -> Array[Vector2i]:

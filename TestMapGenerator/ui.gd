@@ -2,12 +2,13 @@ class_name GameHUD
 extends CanvasLayer
 
 # Ссылки на элементы интерфейса
-@onready var ap_label: Label = $APLabel
+@onready var ap_label: RichTextLabel = $MarginContainer/PanelContainer/RichTextLabel
 @onready var turn_label: Label = $TurnLabel
 @onready var end_turn_button: Button = $EndTurnButton
 @onready var game_state_label: Label = $GameStateLabel
 
-
+# Добавляем переменную для хранения текущей стоимости пути
+var current_path_cost: int = 0
 
 # Ссылка на персонажа и контроллер игры
 @export var character_path: NodePath = "../Character"
@@ -18,12 +19,13 @@ extends CanvasLayer
 
 func _ready():
 	print("GameHUD._ready() started")
-	
 	# Проверяем, что ссылки действительны
 	if not character:
 		push_error("Character not found at path: " + str(character_path))
 	else:
 		print("Character found")
+		# Подключаем сигнал изменения стоимости пути
+		character.connect("path_cost_changed", _on_path_cost_changed)
 	
 	if not game_controller:
 		push_error("GameController not found at path: " + str(game_controller_path))
@@ -51,13 +53,22 @@ func _process(_delta):
 	update_turn_display()
 	update_end_turn_button()
 	update_game_state()
+	
+# Добавляем обработчик сигнала изменения стоимости пути
+func _on_path_cost_changed(cost: int):
+	current_path_cost = cost
+	update_ap_display()
 
 # Обновление отображения очков действия
 func update_ap_display():
 	if character:
-		ap_label.text = "Очки действия: %d/%d" % [character.remaining_ap, character.action_points]
+		if current_path_cost > 0:
+			# Исправленный формат строки - уберем лишний % перед d
+			ap_label.bbcode_text = "AP: %d [color=red](-%d)[/color]" % [character.remaining_ap, current_path_cost]
+		else:
+			ap_label.bbcode_text = "AP: %d" % character.remaining_ap
 	else:
-		ap_label.text = "Очки действия: ?/?"
+		ap_label.bbcode_text = "AP: ?"
 
 # Обновление отображения текущего хода
 func update_turn_display():

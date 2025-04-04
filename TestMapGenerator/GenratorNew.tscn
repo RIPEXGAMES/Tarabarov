@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://ghlwvb6jwha4"]
+[gd_scene load_steps=21 format=3 uid="uid://ghlwvb6jwha4"]
 
 [ext_resource type="Script" uid="uid://x0s5y5mi2u1g" path="res://TestMapGenerator/movement_manger.gd" id="1_2oqp7"]
 [ext_resource type="Script" uid="uid://b54q5eaynxmba" path="res://TestMapGenerator/map_generator.gd" id="1_y2a0y"]
@@ -16,9 +16,15 @@
 [ext_resource type="Script" uid="uid://ccgkh4udit6v7" path="res://TestMapGenerator/ui.gd" id="11_sxreq"]
 [ext_resource type="Texture2D" uid="uid://jntmhc252c3b" path="res://TestMapGenerator/Dot_Path_Preview.png" id="12_2oqp7"]
 [ext_resource type="Texture2D" uid="uid://c8elo46ogmi26" path="res://TestMapGenerator/Dot_Path_Unavaliable.png" id="13_bv7kr"]
+[ext_resource type="FontFile" uid="uid://tyo6dbnk3ywb" path="res://Fonts/PixelizerBold.ttf" id="16_bv7kr"]
+[ext_resource type="StyleBox" uid="uid://drtss4hqk61mg" path="res://Fonts/FontStyle.tres" id="17_0p1rr"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_f5uek"]
 size = Vector2(16, 16)
+
+[sub_resource type="FontVariation" id="FontVariation_0p1rr"]
+base_font = ExtResource("16_bv7kr")
+spacing_glyph = 1
 
 [node name="Node2D" type="Node2D"]
 
@@ -61,12 +67,6 @@ unavailable_point_texture = ExtResource("13_bv7kr")
 script = ExtResource("11_sxreq")
 game_controller_path = NodePath("../GameContoller")
 
-[node name="APLabel" type="Label" parent="UI"]
-offset_left = 10.0
-offset_top = 524.0
-offset_right = 287.0
-offset_bottom = 638.0
-
 [node name="TurnLabel" type="Label" parent="UI"]
 offset_left = 944.0
 offset_top = 1.0
@@ -84,6 +84,29 @@ offset_left = 958.0
 offset_top = 544.0
 offset_right = 1141.0
 offset_bottom = 640.0
+
+[node name="MarginContainer" type="MarginContainer" parent="UI"]
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -22.0
+offset_right = 5.0
+grow_vertical = 0
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="PanelContainer" type="PanelContainer" parent="UI/MarginContainer"]
+layout_mode = 2
+theme_override_styles/panel = ExtResource("17_0p1rr")
+
+[node name="RichTextLabel" type="RichTextLabel" parent="UI/MarginContainer/PanelContainer"]
+layout_mode = 2
+theme_override_fonts/normal_font = SubResource("FontVariation_0p1rr")
+theme_override_font_sizes/normal_font_size = 18
+bbcode_enabled = true
+text = "asdasdas"
+fit_content = true
+autowrap_mode = 0
 
 [node name="Camera2D" type="Camera2D" parent="." node_paths=PackedStringArray("tilemap_layer")]
 position = Vector2(400, 200)

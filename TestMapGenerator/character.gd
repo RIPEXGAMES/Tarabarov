@@ -7,6 +7,7 @@ signal end_turn_requested
 signal cell_changed(old_cell, new_cell)
 signal path_changed(new_path)
 signal movement_started
+signal path_cost_changed(cost)
 
 
 # Настройки персонажа
@@ -79,6 +80,10 @@ func initialize_move_manager():
 	move_manager = MoveManager.new()
 	add_child(move_manager)
 	move_manager.initialize(map_generator, current_cell, remaining_ap, action_points)
+	
+	# Подключаем сигнал о стоимости пути
+	move_manager.connect("path_cost_updated", _on_path_cost_updated)
+	
 	debug_print("MoveManager initialized")
 
 # Обработка ввода
@@ -129,8 +134,9 @@ func handle_left_click(event):
 func handle_right_click():
 	debug_print("Right click detected - clearing selection")
 	move_manager.clear_selection()
-	# Очищаем текущий путь
+	# Очищаем текущий путь и стоимость
 	set_path([])
+	emit_signal("path_cost_changed", 0)
 	get_viewport().set_input_as_handled()
 
 # Выбор клетки
@@ -331,3 +337,8 @@ func debug_print(message: String):
 func _process(delta):
 	# Здесь ничего не делаем, потому что мы используем tween для движения
 	pass
+
+# Добавим обработчик для передачи стоимости пути
+func _on_path_cost_updated(cost: int):
+	emit_signal("path_cost_changed", cost)
+	debug_print("Path cost updated: " + str(cost))
