@@ -10,6 +10,11 @@ extends CanvasLayer
 # Добавляем переменную для хранения текущей стоимости пути
 var current_path_cost: int = 0
 
+# Переменные для эффекта печатной машинки
+var full_cost_text: String = ""
+var current_displayed_text: String = ""
+var typing_tween: Tween
+
 # Ссылка на персонажа и контроллер игры
 @export var character_path: NodePath = "../Character"
 @export var game_controller_path: NodePath = "../GameController"
@@ -57,14 +62,53 @@ func _process(_delta):
 # Добавляем обработчик сигнала изменения стоимости пути
 func _on_path_cost_changed(cost: int):
 	current_path_cost = cost
-	update_ap_display()
+	
+	# Если есть активная анимация, останавливаем её
+	if typing_tween and typing_tween.is_valid():
+		typing_tween.kill()
+	
+	if cost > 0:
+		# Создаем полный текст для отображения
+		full_cost_text = "(-%d)" % cost
+		
+		# Запускаем новую анимацию
+		start_typing_animation()
+	else:
+		full_cost_text = ""
+		current_displayed_text = ""
+		update_ap_display()
+
+# Анимация печатной машинки, ограниченная 0.2 секундами
+func start_typing_animation():
+	# Сбрасываем текст
+	current_displayed_text = ""
+	
+	# Создаем новый Tween
+	typing_tween = create_tween()
+	
+	# Рассчитываем задержку между символами, чтобы уложиться в 0.2 секунды
+	var char_count = full_cost_text.length()
+	var delay_per_char = 0.2 / char_count if char_count > 0 else 0.05
+	
+	# Для каждого символа добавляем шаг анимации
+	for i in range(1, char_count + 1):
+		var partial_text = full_cost_text.substr(0, i)
+		
+		typing_tween.tween_callback(func(): 
+			current_displayed_text = partial_text
+		)
+		typing_tween.tween_interval(delay_per_char)
 
 # Обновление отображения очков действия
 func update_ap_display():
 	if character:
 		if current_path_cost > 0:
-			# Исправленный формат строки - уберем лишний % перед d
-			ap_label.bbcode_text = "AP: %d [color=red](-%d)[/color]" % [character.remaining_ap, current_path_cost]
+			if typing_tween and typing_tween.is_valid() and current_displayed_text != "":
+				# Отображаем текущий прогресс анимации с красным цветом
+				ap_label.bbcode_text = "AP: %d [color=red]%s[/color]" % [character.remaining_ap, current_displayed_text]
+			else:
+				# Отображаем полный текст, если анимация завершена или не начата
+				ap_label.bbcode_text = "AP: %d [color=red](-%d)[/color]" % [character.remaining_ap, current_path_cost]
 		else:
 			ap_label.bbcode_text = "AP: %d" % character.remaining_ap
 	else:

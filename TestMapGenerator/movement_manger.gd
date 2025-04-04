@@ -109,9 +109,8 @@ func update_available_cells():
 				# Для диагонального движения проверяем, можно ли пройти
 				var x_neighbor = Vector2i(current_pos.x + dir.x, current_pos.y)
 				var y_neighbor = Vector2i(current_pos.x, current_pos.y + dir.y)
-				
-				if !(map_generator.is_tile_walkable(x_neighbor.x, x_neighbor.y) or 
-					 map_generator.is_tile_walkable(y_neighbor.x, y_neighbor.y)):
+
+				if !(map_generator.is_tile_walkable(x_neighbor.x, x_neighbor.y) or map_generator.is_tile_walkable(y_neighbor.x, y_neighbor.y)):
 					continue
 			
 			# Вычисляем новую стоимость
@@ -297,11 +296,12 @@ func find_path(start_cell: Vector2i, end_cell: Vector2i) -> Array[Vector2i]:
 				# Вес ребра (для диагоналей делаем больше)
 				var weight = 10.0
 				if dir.x != 0 and dir.y != 0:
-					# Проверка для диагоналей
+					# Исправленная проверка для диагоналей
 					var x_neighbor = Vector2i(cell.x + dir.x, cell.y)
 					var y_neighbor = Vector2i(cell.x, cell.y + dir.y)
-					
-					if map_generator.is_tile_walkable(x_neighbor.x, x_neighbor.y) or map_generator.is_tile_walkable(y_neighbor.y, y_neighbor.y):
+
+					# Для диагонального движения хотя бы одна из соседних клеток должна быть проходимой
+					if map_generator.is_tile_walkable(x_neighbor.x, x_neighbor.y) or map_generator.is_tile_walkable(y_neighbor.x, y_neighbor.y):
 						weight = 15.0
 					else:
 						continue
