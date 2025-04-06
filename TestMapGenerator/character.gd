@@ -117,9 +117,9 @@ func handle_left_click(event):
 	
 	debug_print("Clicked cell: " + str(clicked_cell))
 	
-	# Проверяем, доступна ли выбранная клетка
-	if move_manager.is_cell_available(clicked_cell):
-		debug_print("Cell is available for movement")
+	# Проверяем, проходима ли выбранная клетка (не обязательно доступна)
+	if move_manager.is_cell_walkable(clicked_cell):
+		debug_print("Cell is walkable")
 		
 		# Если клетка уже выбрана и это та же самая клетка - начинаем движение
 		if clicked_cell == move_manager.selected_cell:
@@ -128,7 +128,7 @@ func handle_left_click(event):
 			# Выбираем клетку
 			select_cell(clicked_cell)
 	else:
-		debug_print("Cell is not available for movement")
+		debug_print("Cell is not walkable")
 
 # Обработка правого клика
 func handle_right_click():

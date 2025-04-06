@@ -23,6 +23,7 @@ extends Node2D
 var character: Character
 var landscape_layer: TileMapLayer
 var move_manager = null
+var available_path_steps: int = 0
 
 func _ready():
 	print("PathVisualizer._ready() started")
@@ -66,11 +67,17 @@ func _ready():
 	
 	# Подписываемся на сигналы
 	move_manager.connect("path_updated", _on_path_updated)
+	move_manager.connect("path_split_updated", _on_path_split_updated)
 	
 	print("PathVisualizer initialized")
 
 # Обработчик обновления пути
 func _on_path_updated():
+	queue_redraw()
+
+# Обработчик обновления разделения пути
+func _on_path_split_updated(steps: int):
+	available_path_steps = steps
 	queue_redraw()
 
 func _process(_delta):
@@ -87,21 +94,68 @@ func _draw():
 	# Рисуем путь из менеджера
 	var current_path = move_manager.get_current_path()
 	if current_path.size() > 0:
-		# Определяем цвет в зависимости от доступности
-		var color = selected_path_color
-		var texture = selected_point_texture
-		
-		# Если путь слишком длинный, меняем цвет
-		if current_path.size() > move_manager.current_ap:
-			color = unavailable_color
-			texture = unavailable_point_texture
-		
-		draw_path(current_path, color, texture)
+		# Рисуем путь с разделением на доступную и недоступную части
+		draw_split_path(current_path, available_path_steps)
 		
 		# Выделяем выбранную клетку
 		if move_manager.selected_cell != Vector2i(-1, -1):
 			var selected_cell_position = landscape_layer.map_to_local(move_manager.selected_cell)
 			draw_selected_cell_highlight(selected_cell_position)
+
+# Функция для отрисовки пути с разделением на доступную и недоступную части
+# Функция для отрисовки пути с разделением на доступную и недоступную части
+func draw_split_path(path_to_draw: Array, available_steps: int):
+	if path_to_draw.size() == 0:
+		return
+	
+	var available_points = []
+	var unavailable_points = []
+	
+	# Добавляем текущую позицию персонажа
+	available_points.append(character.global_position)
+	
+	# Добавляем точки доступной части пути
+	for i in range(min(available_steps, path_to_draw.size())):
+		available_points.append(landscape_layer.map_to_local(path_to_draw[i]))
+	
+	# Если есть недоступная часть, добавляем последнюю точку доступной части
+	# как первую точку недоступной части для соединения
+	if available_steps < path_to_draw.size() and available_points.size() > 0:
+		unavailable_points.append(available_points[-1])
+	
+	# Добавляем точки недоступной части пути
+	for i in range(available_steps, path_to_draw.size()):
+		unavailable_points.append(landscape_layer.map_to_local(path_to_draw[i]))
+	
+	# ИЗМЕНЕНО: Сначала рисуем ВСЕ линии, затем ВСЕ точки
+	
+	# 1. Рисуем все линии доступной части пути
+	for i in range(available_points.size() - 1):
+		draw_line(to_local(available_points[i]), to_local(available_points[i + 1]), 
+			path_color, 2.0)
+	
+	# 2. Рисуем все линии недоступной части пути
+	for i in range(unavailable_points.size() - 1):
+		draw_line(to_local(unavailable_points[i]), to_local(unavailable_points[i + 1]), 
+			unavailable_color, 2.0)
+	
+	# 3. Рисуем все точки доступной части пути
+	for i in range(1, available_points.size()):  # Начинаем с 1, чтобы пропустить точку персонажа
+		if selected_point_texture:
+			var texture_size = Vector2(selected_point_texture.get_size())
+			var position = to_local(available_points[i]) - texture_size / 2
+			draw_texture(selected_point_texture, position)
+		else:
+			draw_circle(to_local(available_points[i]), point_size, path_color)
+	
+	# 4. Рисуем все точки недоступной части пути, кроме первой (она совпадает с последней точкой доступной части)
+	for i in range(1, unavailable_points.size()):
+		if unavailable_point_texture:
+			var texture_size = Vector2(unavailable_point_texture.get_size())
+			var position = to_local(unavailable_points[i]) - texture_size / 2
+			draw_texture(unavailable_point_texture, position)
+		else:
+			draw_circle(to_local(unavailable_points[i]), point_size, unavailable_color)
 
 # Функция для отрисовки выделения выбранной клетки
 func draw_selected_cell_highlight(position: Vector2):
@@ -113,7 +167,7 @@ func draw_selected_cell_highlight(position: Vector2):
 	var rect = Rect2(local_pos - cell_size/2, cell_size)
 	draw_rect(rect, selected_path_color, false, 2.0)
 
-# Функция отрисовки пути
+# Функция отрисовки пути (используется для пути персонажа)
 func draw_path(path_to_draw: Array, line_color: Color, point_texture: Texture2D = null):
 	if path_to_draw.size() == 0:
 		return
