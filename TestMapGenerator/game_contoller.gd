@@ -8,6 +8,9 @@ extends Node
 @onready var landscape_layer: TileMapLayer = get_node("../Landscape")
 @onready var obstacles_layer: TileMapLayer = get_node("../Obstacles")
 
+# Добавим ссылку на противника
+@onready var enemy: Enemy = get_node("../Enemy") if has_node("../Enemy") else null
+
 # Система ходов
 var current_turn: int = 1
 var is_player_turn: bool = true
@@ -51,6 +54,7 @@ func _on_move_finished_debug():
 	print("Character move finished - debug notification only")
 
 # Обработка запроса на завершение хода - ОСНОВНОЙ метод для смены хода
+# Обновленный обработчик завершения хода игрока
 func _on_character_turn_end_requested():
 	print("End turn requested by character")
 	
@@ -58,8 +62,12 @@ func _on_character_turn_end_requested():
 	is_player_turn = false
 	print("Player's turn set to false")
 	
-	# Логика ИИ
-	print("AI turn would happen here")
+	# Логика ИИ - теперь с обработкой противника
+	if enemy:
+		print("Processing enemy turn")
+		enemy.process_turn()
+	else:
+		print("No enemy found in the scene")
 	
 	# После выполнения действий переключаем ход обратно
 	call_deferred("end_enemy_turn")

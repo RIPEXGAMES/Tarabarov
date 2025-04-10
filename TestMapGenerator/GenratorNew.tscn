@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://ghlwvb6jwha4"]
+[gd_scene load_steps=22 format=3 uid="uid://ghlwvb6jwha4"]
 
 [ext_resource type="Script" uid="uid://x0s5y5mi2u1g" path="res://TestMapGenerator/movement_manger.gd" id="1_2oqp7"]
 [ext_resource type="Script" uid="uid://b54q5eaynxmba" path="res://TestMapGenerator/map_generator.gd" id="1_y2a0y"]
@@ -16,6 +16,7 @@
 [ext_resource type="Script" uid="uid://ccgkh4udit6v7" path="res://TestMapGenerator/ui.gd" id="11_sxreq"]
 [ext_resource type="Texture2D" uid="uid://jntmhc252c3b" path="res://TestMapGenerator/Dot_Path_Preview.png" id="12_2oqp7"]
 [ext_resource type="Texture2D" uid="uid://c8elo46ogmi26" path="res://TestMapGenerator/Dot_Path_Unavaliable.png" id="13_bv7kr"]
+[ext_resource type="PackedScene" uid="uid://dr7dbgv1sykjx" path="res://TestMapGenerator/Enemy.tscn" id="15_x5i8o"]
 [ext_resource type="FontFile" uid="uid://tyo6dbnk3ywb" path="res://Fonts/PixelizerBold.ttf" id="16_bv7kr"]
 [ext_resource type="StyleBox" uid="uid://drtss4hqk61mg" path="res://Fonts/FontStyle.tres" id="17_0p1rr"]
 
@@ -33,6 +34,7 @@ script = ExtResource("1_2oqp7")
 
 [node name="MapGenerator" type="Node" parent="."]
 script = ExtResource("1_y2a0y")
+enemy_scene = ExtResource("15_x5i8o")
 
 [node name="GameContoller" type="Node" parent="."]
 script = ExtResource("2_8ecrj")

@@ -1,6 +1,16 @@
 class_name MapGenerator
 extends Node
 
+# Добавляем предзагрузку сцены противника
+@export var enemy_scene: PackedScene # Ссылка на сцену противника через инспектор
+
+# Добавляем настройки для спавна противников
+@export var min_distance_between_enemies: int = 4
+@export var min_distance_from_player: int = 5
+
+# Массив созданных противников
+var spawned_enemies: Array = []
+
 # Настройки генерации карты
 @export var map_width: int = 25
 @export var map_height: int = 25
@@ -75,7 +85,19 @@ func generate_map():
 	# 4. Генерация препятствий
 	generate_obstacles()
 	
+	# 5. Генерация противников (например, 3 противника)
+	# Теперь используем call_deferred, чтобы выполнить это позже
+	# когда все другие узлы уже будут настроены
+	call_deferred("generate_enemies_deferred", 3)
+	
+	
 	print("Карта успешно сгенерирована!")
+
+# Отложенная генерация противников
+func generate_enemies_deferred(count):
+	# Ждем один кадр, чтобы убедиться что Character инициализирован
+	await get_tree().process_frame
+	generate_enemies(count)
 
 func generate_base_landscape():
 	# Заполняем базовый слой травой
@@ -307,3 +329,91 @@ func get_walkable_neighbors(x: int, y: int) -> Array:
 			neighbors.append(Vector2i(nx, ny))
 	
 	return neighbors
+
+# Новая функция для генерации противников
+
+# Новая функция для генерации противников
+func generate_enemies(count: int) -> Array:
+	print("Generating " + str(count) + " enemies...")
+	
+	# Очищаем список противников, если они уже существуют
+	for enemy in spawned_enemies:
+		if is_instance_valid(enemy):
+			enemy.queue_free()
+	spawned_enemies.clear()
+	
+	# Находим игрока для проверки дистанции
+	var player = get_node("../Character")
+	if not player:
+		push_error("Player character not found when spawning enemies!")
+		return []
+	
+	var player_pos = player.current_cell
+	
+	# Создаём заданное количество противников
+	for i in range(count):
+		# ИСПРАВЛЕНО: Теперь правильно используем await
+		var enemy_instance = await create_enemy_at_position(player_pos)
+		if enemy_instance:
+			spawned_enemies.append(enemy_instance)
+	
+	print("Successfully spawned " + str(spawned_enemies.size()) + " enemies")
+	return spawned_enemies
+
+# ИСПРАВЛЕНО: Переименованный метод для лучшей читаемости
+func create_enemy_at_position(player_pos: Vector2i) -> Enemy:
+	# Проверяем, загружена ли сцена противника
+	if not enemy_scene:
+		push_error("Enemy scene is not assigned!")
+		return null
+	
+	# Пытаемся найти подходящую позицию
+	var max_attempts = 100
+	var attempts = 0
+	var valid_position = null
+	
+	# Сначала находим валидную позицию
+	while attempts < max_attempts:
+		# Выбираем случайную позицию
+		var x = randi() % map_width
+		var y = randi() % map_height
+		var pos = Vector2i(x, y)
+		
+		# Проверяем условия размещения
+		if is_tile_walkable(x, y) and pos.distance_to(player_pos) >= min_distance_from_player:
+			var too_close_to_other_enemy = false
+			
+			for enemy in spawned_enemies:
+				if pos.distance_to(enemy.current_cell) < min_distance_between_enemies:
+					too_close_to_other_enemy = true
+					break
+			
+			if not too_close_to_other_enemy:
+				valid_position = pos
+				break
+		
+		attempts += 1
+	
+	# Если мы не смогли найти позицию, выходим
+	if not valid_position:
+		print("Failed to find valid position for enemy after " + str(max_attempts) + " attempts")
+		return null
+	
+	# Создаем экземпляр противника
+	var enemy_instance = enemy_scene.instantiate() as Enemy
+	get_parent().add_child(enemy_instance)
+	
+	# Даем время для обработки _ready
+	await get_tree().process_frame
+	
+	# Устанавливаем позицию
+	if enemy_instance.has_method("force_position"):
+		enemy_instance.force_position(valid_position)
+		print("Enemy spawned at cell: " + str(valid_position))
+		
+		# Еще раз убеждаемся, что противник виден
+		enemy_instance.visible = true
+		if enemy_instance.sprite:
+			enemy_instance.sprite.visible = true
+	
+	return enemy_instance
