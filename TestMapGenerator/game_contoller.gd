@@ -15,6 +15,10 @@ extends Node
 var current_turn: int = 1
 var is_player_turn: bool = true
 
+# Добавьте статистику боя
+var total_enemies_defeated: int = 0
+var total_damage_dealt: int = 0
+
 # Сигнал изменения хода
 signal turn_changed
 
@@ -41,6 +45,11 @@ func _ready():
 		if character.has_signal("move_finished"):
 			character.connect("move_finished", _on_move_finished_debug)
 			print("Connected to character's move_finished signal (debug only)")
+	
+	# Подключаем сигнал атаки
+	if character.has_signal("attack_started"):
+		character.connect("attack_started", _on_character_attack_started)
+		print("Connected to character's attack_started signal")
 	
 	# Принудительно устанавливаем ход игрока
 	is_player_turn = true
@@ -71,6 +80,26 @@ func _on_character_turn_end_requested():
 	
 	# После выполнения действий переключаем ход обратно
 	call_deferred("end_enemy_turn")
+
+# Обработчик начала атаки персонажа
+func _on_character_attack_started(enemy: Enemy):
+	print("Character attack started on enemy")
+	
+	# Дождитесь завершения анимации, прежде чем наносить урон
+	await character.tween.finished
+	
+	# Урон от атаки берем из настроек персонажа
+	var damage = character.attack_damage
+	
+	# Применяем урон противнику
+	var enemy_died = enemy.take_damage(damage)
+	
+	# Обновляем статистику
+	total_damage_dealt += damage
+	
+	if enemy_died:
+		total_enemies_defeated += 1
+		print("Enemy defeated! Total enemies defeated: ", total_enemies_defeated)
 
 # Завершение хода противников
 func end_enemy_turn():

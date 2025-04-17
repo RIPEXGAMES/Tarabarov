@@ -8,6 +8,9 @@ signal cell_changed(old_cell, new_cell)
 signal path_changed(new_path)
 signal movement_started
 signal path_cost_changed(cost)
+signal attack_range_changed(cells)
+signal attack_executed(target_cell)
+signal attack_started(target_enemy)
 
 
 # Настройки персонажа
@@ -15,11 +18,17 @@ signal path_cost_changed(cost)
 @export var action_points: int = 50
 @export var allow_diagonal: bool = true
 @export var debug_mode: bool = true
+@export var attack_range: int = 30  # Максимальная дальность атаки в AP
+@export var attack_cost: int = 20   # Стоимость атаки
+@export var attack_damage: int = 25  # Базовый урон от атаки
 
 # Состояние персонажа
 var current_cell: Vector2i = Vector2i.ZERO
 var is_moving: bool = false
 var remaining_ap: int = action_points
+var attack_mode: bool = false
+var available_attack_cells: Array = []
+var is_attacking: bool = false
 
 # Переменные для пути
 var path: Array = []
@@ -87,27 +96,35 @@ func initialize_move_manager():
 	debug_print("MoveManager initialized")
 
 # Обработка ввода
+# Обновите метод _input
 func _input(event):
 	# Обрабатываем только если сейчас ход игрока и персонаж не двигается
 	if not can_process_input():
 		return
 	
+	# Переключение режима атаки по нажатию на кнопку "A"
+	if event is InputEventKey and event.pressed and event.keycode == KEY_A:
+		toggle_attack_mode()
+		return
+	
 	# Обработка левого клика
 	if event.is_action_pressed("left_click"):
-		handle_left_click(event)
+		if attack_mode:
+			handle_attack_click(event)
+		else:
+			handle_left_click(event)
 	
-	# Обработка правого клика - сброс выбранной клетки
+	# Обработка правого клика
 	elif event.is_action_pressed("right_click"):
-		handle_right_click()
+		if attack_mode:
+			exit_attack_mode()
+		else:
+			handle_right_click()
 	
 	# Завершение хода по нажатию пробела
-	elif event.is_action_pressed("ui_select") or (event is InputEventKey and event.pressed and event.keycode == KEY_SPACE):
+	elif event.is_action_pressed("ui_select") or event is InputEventKey and event.pressed and event.keycode == KEY_SPACE:
 		debug_print("End turn triggered via keyboard")
 		request_end_turn()
-
-# Проверка возможности обработки ввода
-func can_process_input() -> bool:
-	return game_controller and game_controller.can_player_act() and not is_moving
 
 # Обработка левого клика
 func handle_left_click(event):
@@ -342,3 +359,159 @@ func _process(delta):
 func _on_path_cost_updated(cost: int):
 	emit_signal("path_cost_changed", cost)
 	debug_print("Path cost updated: " + str(cost))
+
+# Переключение режима атаки
+func toggle_attack_mode():
+	# Если режим атаки выключен и мы хотим его включить, проверяем AP
+	if !attack_mode:
+		# Проверяем, хватает ли AP для атаки
+		if remaining_ap < attack_cost:
+			debug_print("Недостаточно AP для атаки! Необходимо: " + str(attack_cost) + ", имеется: " + str(remaining_ap))
+			# Можно добавить всплывающее сообщение для игрока
+			# show_message("Недостаточно энергии для атаки!")
+			return
+	
+	attack_mode = !attack_mode
+	
+	if attack_mode:
+		debug_print("Attack mode enabled")
+		move_manager.clear_selection()
+		set_path([]) # Очищаем путь перемещения
+		
+		# Рассчитываем доступные клетки для атаки
+		available_attack_cells = calculate_attack_cells()
+		emit_signal("attack_range_changed", available_attack_cells)
+	else:
+		debug_print("Attack mode disabled")
+		available_attack_cells.clear()
+		emit_signal("attack_range_changed", [])
+
+# Выход из режима атаки
+func exit_attack_mode():
+	if attack_mode:
+		attack_mode = false
+		available_attack_cells.clear()
+		emit_signal("attack_range_changed", [])
+		debug_print("Exited attack mode")
+
+# Расчет доступных клеток для атаки
+func calculate_attack_cells() -> Array:
+	var attack_cells = []
+	
+	# Находим всех противников в сцене
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	
+	for enemy in enemies:
+		if enemy is Enemy:
+			# Рассчитываем стоимость пути до противника
+			var path_to_enemy = move_manager.find_path_to_any_cell(current_cell, enemy.current_cell)
+			var path_cost = move_manager.calculate_path_cost(path_to_enemy)
+			
+			# Если стоимость пути меньше или равна радиусу атаки и у нас достаточно AP
+			if path_cost <= attack_range and remaining_ap >= attack_cost:
+				attack_cells.append(enemy.current_cell)
+	
+	return attack_cells
+
+# Обработка клика в режиме атаки
+func handle_attack_click(event):
+	debug_print("Attack click detected")
+	var mouse_pos = get_global_mouse_position()
+	var clicked_cell = landscape_layer.local_to_map(landscape_layer.to_local(mouse_pos))
+	
+	debug_print("Clicked cell for attack: " + str(clicked_cell))
+	
+	# Проверяем, есть ли на клетке противник и в радиусе атаки ли он
+	var target_enemy = find_enemy_at_cell(clicked_cell)
+	
+	if target_enemy and is_cell_in_attack_range(clicked_cell):
+		debug_print("Valid enemy target found, executing attack")
+		execute_attack(target_enemy, clicked_cell)
+	else:
+		debug_print("No valid target at clicked cell or out of attack range")
+
+# Поиск противника на указанной клетке
+func find_enemy_at_cell(cell: Vector2i) -> Enemy:
+	# Находим всех противников в сцене
+	var enemies = get_tree().get_nodes_in_group("enemies")
+	
+	for enemy in enemies:
+		if enemy is Enemy and enemy.current_cell == cell:
+			return enemy
+	
+	return null
+
+# Проверка, находится ли клетка в радиусе атаки
+func is_cell_in_attack_range(cell: Vector2i) -> bool:
+	return cell in available_attack_cells
+
+# Выполнение атаки
+func execute_attack(enemy: Enemy, target_cell: Vector2i):
+	if remaining_ap < attack_cost:
+		debug_print("Not enough AP to attack")
+		return
+	
+	debug_print("Executing attack on enemy at " + str(target_cell))
+	
+	# Уменьшаем очки действия
+	remaining_ap -= attack_cost
+	
+	# Обновляем AP в менеджере перемещений
+	move_manager.current_ap = remaining_ap
+	move_manager.update_available_cells()
+	
+	# Поворачиваем персонажа в сторону противника
+	var direction = global_position.direction_to(landscape_layer.map_to_local(target_cell))
+	update_sprite_direction(direction)
+	
+	# Анимация атаки
+	is_attacking = true
+	animate_attack(enemy)
+	
+	# Отправляем сигналы
+	emit_signal("attack_started", enemy)
+	emit_signal("attack_executed", target_cell)
+	
+	# Выходим из режима атаки
+	exit_attack_mode()
+
+# Анимация атаки
+# Исправьте метод animate_attack в Character.gd
+func animate_attack(enemy: Enemy):
+	# Здесь можно добавить анимацию атаки
+	var original_pos = global_position
+	var enemy_pos = enemy.global_position
+	var direction = original_pos.direction_to(enemy_pos)
+	
+	# Рывок на 1/3 расстояния к цели
+	var dash_pos = original_pos + direction * original_pos.distance_to(enemy_pos) * 0.3
+	
+	# Создаем твин для анимации
+	if tween and tween.is_running():
+		tween.kill()
+	
+	tween = create_tween()
+	tween.set_ease(Tween.EASE_OUT)
+	tween.set_trans(Tween.TRANS_EXPO)
+	
+	# Рывок вперед
+	tween.tween_property(self, "global_position", dash_pos, 0.15)
+	
+	# Возврат назад
+	tween.tween_property(self, "global_position", original_pos, 0.3)
+	
+	# Применение урона после анимации
+	await tween.finished
+	
+	# ВАЖНО: Перенесите урон в GameController
+	# НЕ применяйте урон здесь!
+	# enemy.take_damage(attack_damage) - УДАЛИТЕ ЭТУ СТРОКУ
+	
+	debug_print("Attack animation completed")
+	
+	# Убираем флаг атаки
+	is_attacking = false
+
+# Обновите метод can_process_input
+func can_process_input() -> bool:
+	return game_controller and game_controller.can_player_act() and not is_moving and not is_attacking

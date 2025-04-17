@@ -7,6 +7,10 @@ extends Node2D
 # Минимальное расстояние от игрока для спавна
 @export var min_distance_from_player: int = 5
 
+@export var max_health: int = 100
+var current_health: int = 100
+
+
 # Текущая позиция на карте
 var current_cell: Vector2i = Vector2i.ZERO
 
@@ -14,6 +18,9 @@ var current_cell: Vector2i = Vector2i.ZERO
 @onready var map_generator: MapGenerator = get_node("../MapGenerator")
 @onready var landscape_layer: TileMapLayer = get_node("../Landscape")
 @onready var sprite: Sprite2D = $Sprite2D
+
+signal health_changed(new_health)
+signal enemy_died
 
 func _ready():
 	debug_print("Enemy._ready() started")
@@ -33,6 +40,12 @@ func _ready():
 	else:
 		debug_print("Using pre-assigned position: " + str(current_cell) + 
 			" world pos: " + str(global_position))
+	
+	# Инициализация здоровья
+	current_health = max_health
+	
+	# Добавляем противника в группу enemies для поиска
+	add_to_group("enemies")
 	
 	debug_print("Enemy._ready() completed")
 
@@ -125,3 +138,30 @@ func force_position(pos: Vector2i):
 	if sprite:
 		sprite.visible = true
 		debug_print("Sprite visibility set to true")
+
+# Применение урона
+func take_damage(damage: int) -> bool:
+	debug_print("Taking damage: " + str(damage))
+	
+	current_health = max(0, current_health - damage)
+	emit_signal("health_changed", current_health)
+	
+	debug_print("Health after damage: " + str(current_health))
+	
+	# Проверка смерти
+	if current_health <= 0:
+		debug_print("Enemy defeated")
+		emit_signal("enemy_died")
+		die()
+		return true
+	
+	return false
+
+# Обработка смерти противника
+func die():
+	debug_print("Enemy died, removing from scene")
+	
+	# Анимация смерти
+	var death_tween = create_tween()
+	death_tween.tween_property(self, "modulate:a", 0.0, 0.5)
+	death_tween.tween_callback(queue_free)
