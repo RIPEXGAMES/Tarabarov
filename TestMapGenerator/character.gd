@@ -11,6 +11,7 @@ signal path_cost_changed(cost)
 signal attack_range_changed(cells)
 signal attack_executed(target_cell)
 signal attack_started(target_enemy)
+signal attack_radius_changed(radius_cells, target_cells)
 
 
 # Настройки персонажа
@@ -29,6 +30,7 @@ var remaining_ap: int = action_points
 var attack_mode: bool = false
 var available_attack_cells: Array = []
 var is_attacking: bool = false
+var all_attack_radius_cells: Array = [] # Все клетки в радиусе атаки
 
 # Переменные для пути
 var path: Array = []
@@ -367,8 +369,6 @@ func toggle_attack_mode():
 		# Проверяем, хватает ли AP для атаки
 		if remaining_ap < attack_cost:
 			debug_print("Недостаточно AP для атаки! Необходимо: " + str(attack_cost) + ", имеется: " + str(remaining_ap))
-			# Можно добавить всплывающее сообщение для игрока
-			# show_message("Недостаточно энергии для атаки!")
 			return
 	
 	attack_mode = !attack_mode
@@ -378,13 +378,21 @@ func toggle_attack_mode():
 		move_manager.clear_selection()
 		set_path([]) # Очищаем путь перемещения
 		
-		# Рассчитываем доступные клетки для атаки
+		# Рассчитываем весь радиус атаки
+		all_attack_radius_cells = calculate_attack_radius()
+		
+		# Рассчитываем доступные цели для атаки
 		available_attack_cells = calculate_attack_cells()
-		emit_signal("attack_range_changed", available_attack_cells)
+		
+		debug_print("Attack radius: " + str(all_attack_radius_cells.size()) + " cells, targets: " + str(available_attack_cells.size()))
+		
+		# Отправляем оба набора клеток
+		emit_signal("attack_radius_changed", all_attack_radius_cells, available_attack_cells)
 	else:
 		debug_print("Attack mode disabled")
+		all_attack_radius_cells.clear()
 		available_attack_cells.clear()
-		emit_signal("attack_range_changed", [])
+		emit_signal("attack_radius_changed", [], [])
 
 # Выход из режима атаки
 func exit_attack_mode():
@@ -511,6 +519,26 @@ func animate_attack(enemy: Enemy):
 	
 	# Убираем флаг атаки
 	is_attacking = false
+
+# Расчет всех клеток в радиусе атаки
+func calculate_attack_radius() -> Array:
+	# Создаем временный MoveManager для расчета радиуса атаки
+	var temp_manager = MoveManager.new()
+	add_child(temp_manager)
+	
+	# Инициализируем его с текущими данными, но с attack_range вместо AP
+	temp_manager.initialize(map_generator, current_cell, attack_range, attack_range)
+	
+	# Обновляем доступные клетки
+	temp_manager.update_available_cells()
+	
+	# Получаем результат
+	var result = temp_manager.available_cells.duplicate()
+	
+	# Удаляем временный менеджер
+	temp_manager.queue_free()
+	
+	return result
 
 # Обновите метод can_process_input
 func can_process_input() -> bool:

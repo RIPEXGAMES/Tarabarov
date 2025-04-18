@@ -60,14 +60,13 @@ func _ready():
 # Обработчик обновления доступных клеток
 # Обработчик изменения доступных целей для атаки
 func _on_attack_range_changed(cells: Array):
-	attack_cells = cells
-	is_attack_mode = cells.size() > 0
-	
-	if is_attack_mode:
-		# Если в режиме атаки, используем атакующую подсветку
-		highlight_attack_cells()
+	# Если включен режим атаки, просто очищаем подсветку движения
+	# и позволяем AttackRangeVisualizer отображать радиус атаки
+	if cells.size() > 0:
+		is_attack_mode = true
+		clear()
 	else:
-		# Если вышли из режима атаки, возвращаемся к обычной подсветке перемещения
+		is_attack_mode = false
 		highlight_available_cells()
 
 # Обработчик выполненной атаки

@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://ghlwvb6jwha4"]
+[gd_scene load_steps=23 format=3 uid="uid://ghlwvb6jwha4"]
 
 [ext_resource type="Script" uid="uid://x0s5y5mi2u1g" path="res://TestMapGenerator/movement_manger.gd" id="1_2oqp7"]
 [ext_resource type="Script" uid="uid://b54q5eaynxmba" path="res://TestMapGenerator/map_generator.gd" id="1_y2a0y"]
@@ -15,6 +15,7 @@
 [ext_resource type="Texture2D" uid="uid://rgeo0oly223m" path="res://TestMapGenerator/Dot_Path.png" id="11_3ptqc"]
 [ext_resource type="Script" uid="uid://ccgkh4udit6v7" path="res://TestMapGenerator/ui.gd" id="11_sxreq"]
 [ext_resource type="Texture2D" uid="uid://jntmhc252c3b" path="res://TestMapGenerator/Dot_Path_Preview.png" id="12_2oqp7"]
+[ext_resource type="Script" uid="uid://b8cbwm14vsfxo" path="res://TestMapGenerator/attack_range_visualizer.gd" id="12_6s1bd"]
 [ext_resource type="Texture2D" uid="uid://c8elo46ogmi26" path="res://TestMapGenerator/Dot_Path_Unavaliable.png" id="13_bv7kr"]
 [ext_resource type="PackedScene" uid="uid://dr7dbgv1sykjx" path="res://TestMapGenerator/Enemy.tscn" id="15_x5i8o"]
 [ext_resource type="FontFile" uid="uid://tyo6dbnk3ywb" path="res://Fonts/PixelizerBold.ttf" id="16_bv7kr"]
@@ -58,6 +59,10 @@ shape = SubResource("RectangleShape2D_f5uek")
 [node name="Highlight" type="TileMapLayer" parent="."]
 tile_set = ExtResource("5_ey8tn")
 script = ExtResource("6_3h22p")
+
+[node name="AttackRangeVisualizer" type="Node2D" parent="."]
+script = ExtResource("12_6s1bd")
+radius_color = Color(0.948, 0.613, 0, 0.53)
 
 [node name="PathVisualizer" type="Node2D" parent="."]
 script = ExtResource("9_o1fp3")
@@ -115,3 +120,5 @@ position = Vector2(400, 200)
 zoom = Vector2(5, 5)
 script = ExtResource("4_octll")
 tilemap_layer = NodePath("../Landscape")
+min_zoom = 2.9
+max_zoom = 6.0
