@@ -113,3 +113,26 @@ func end_enemy_turn():
 # Проверка хода игрока
 func can_player_act() -> bool:
 	return is_player_turn
+
+
+
+# Обработка атаки с учетом вероятности попадания
+func handle_attack(attacker: Character, target: Enemy, cell: Vector2i):
+	# Получаем шанс попадания
+	var hit_chance = 0
+	if attacker.hit_chance_map.has(cell):
+		hit_chance = attacker.hit_chance_map[cell]
+	else:
+		# Если по какой-то причине шанс не рассчитан, вычисляем его
+		var distance = attacker.current_cell.distance_to(cell)
+		hit_chance = attacker.calculate_hit_chance(distance)
+	
+	# Определяем попадание
+	var hit_roll = randi() % 100 + 1  # Случайное число от 1 до 100
+	var hit_successful = hit_roll <= hit_chance
+	
+	print("Attack roll: " + str(hit_roll) + " vs hit chance: " + str(hit_chance))
+	print("Result: " + ("Hit" if hit_successful else "Miss"))
+	
+	# Применяем урон с учетом попадания
+	target.take_damage_with_chance(attacker.attack_damage, hit_successful)

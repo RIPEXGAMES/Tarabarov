@@ -10,6 +10,8 @@ extends Node2D
 @export var max_health: int = 100
 var current_health: int = 100
 
+# Флаг, указывающий на попадание или промах
+var was_hit: bool = false
 
 # Текущая позиция на карте
 var current_cell: Vector2i = Vector2i.ZERO
@@ -157,6 +159,33 @@ func take_damage(damage: int) -> bool:
 	
 	return false
 
+
+# Применение урона с учетом вероятности попадания
+func take_damage_with_chance(damage: int, hit_successful: bool) -> bool:
+	was_hit = hit_successful
+	
+	# Если промах, не применяем урон
+	if !hit_successful:
+		debug_print("Attack missed!")
+		show_miss_effect()
+		return false
+	
+	# Если попадание, применяем урон как обычно
+	debug_print("Taking damage: " + str(damage))
+	current_health = max(0, current_health - damage)
+	emit_signal("health_changed", current_health)
+	
+	debug_print("Health after damage: " + str(current_health))
+	
+	# Проверка смерти
+	if current_health <= 0:
+		debug_print("Enemy defeated")
+		emit_signal("enemy_died")
+		die()
+		return true
+	
+	return false
+
 # Обработка смерти противника
 func die():
 	debug_print("Enemy died, removing from scene")
@@ -165,3 +194,24 @@ func die():
 	var death_tween = create_tween()
 	death_tween.tween_property(self, "modulate:a", 0.0, 0.5)
 	death_tween.tween_callback(queue_free)
+
+# Эффект промаха
+func show_miss_effect():
+	# Анимация уклонения или мигание
+	var miss_tween = create_tween()
+	miss_tween.tween_property(self, "modulate", Color(1.5, 1.5, 1.5), 0.1)
+	miss_tween.tween_property(self, "modulate", Color(1, 1, 1), 0.2)
+	
+	# Создаем и отображаем метку "MISS"
+	var miss_label = Label.new()
+	miss_label.text = "MISS!"
+	miss_label.add_theme_font_size_override("font_size", 16)
+	miss_label.add_theme_color_override("font_color", Color.RED)
+	miss_label.position = Vector2(-20, -40)
+	add_child(miss_label)
+	
+	# Анимация метки
+	var label_tween = create_tween()
+	label_tween.tween_property(miss_label, "position:y", -60, 0.5)
+	label_tween.tween_property(miss_label, "modulate:a", 0.0, 0.2)
+	label_tween.tween_callback(miss_label.queue_free)

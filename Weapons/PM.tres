@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Weapon" load_steps=2 format=3 uid="uid://btnvmndso0075"]
+
+[ext_resource type="Script" uid="uid://cyeabf3bge4wi" path="res://resources/Weapon.gd" id="1_867i7"]
+
+[resource]
+script = ExtResource("1_867i7")
+name = "Default"
+damage = 100
+effective_range = 10
+base_hit_chance = 80
+medium_hit_chance = 40
+attack_cost = 20
+type = 0
+metadata/_custom_type_script = "uid://cyeabf3bge4wi"
