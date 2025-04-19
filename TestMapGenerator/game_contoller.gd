@@ -85,21 +85,16 @@ func _on_character_turn_end_requested():
 func _on_character_attack_started(enemy: Enemy):
 	print("Character attack started on enemy")
 	
-	# Дождитесь завершения анимации, прежде чем наносить урон
+	# Вместо этого дожидаемся результата атаки через сигнал
 	await character.tween.finished
 	
-	# Урон от атаки берем из настроек персонажа
-	var damage = character.attack_damage
-	
-	# Применяем урон противнику
-	var enemy_died = enemy.take_damage(damage)
-	
-	# Обновляем статистику
-	total_damage_dealt += damage
-	
-	if enemy_died:
+	# Обновляем статистику только если враг побежден
+	if enemy.current_health <= 0:
 		total_enemies_defeated += 1
 		print("Enemy defeated! Total enemies defeated: ", total_enemies_defeated)
+		
+	# Можно также дополнительно добавить сигнал для обновления статистики урона
+	# при успешном попадании, если это необходимо
 
 # Завершение хода противников
 func end_enemy_turn():
