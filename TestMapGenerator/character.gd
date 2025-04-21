@@ -388,8 +388,8 @@ func is_line_of_sight_clear(from_cell: Vector2i, to_cell: Vector2i) -> bool:
 	for i in range(1, line.size() - 1):
 		var cell = line[i]
 		
-		# Если клетка не проходима (стена или препятствие)
-		if not map_generator.is_tile_walkable(cell.x, cell.y):
+		# Проверяем, блокирует ли клетка линию видимости
+		if map_generator.is_tile_blocking_vision(cell.x, cell.y):
 			return false
 	
 	return true

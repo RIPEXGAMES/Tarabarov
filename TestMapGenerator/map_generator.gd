@@ -24,6 +24,22 @@ var spawned_enemies: Array = []
 @onready var landscape_layer: TileMapLayer = $"../Landscape"
 @onready var obstacles_layer: TileMapLayer = $"../Obstacles"
 
+# Добавьте этот словарь после словаря walkability
+var visibility_blocking = {
+	LandscapeType.GRASS: false,
+	LandscapeType.DIRT: false,
+	LandscapeType.WATER: false, # Вода не блокирует видимость
+	LandscapeType.PATH: false,
+	ObstacleType.TREE: true,    # Деревья блокируют видимость
+	ObstacleType.ROCK: true,    # Камни блокируют видимость
+	ObstacleType.FALLEN_TREE_LEFT: false,  # Поваленные деревья не блокируют видимость
+	ObstacleType.FALLEN_TREE_RIGHT: false, # Поваленные деревья не блокируют видимость
+	ObstacleType.FENCE: true    # Забор блокирует видимость
+}
+
+# Добавьте массив для хранения информации о блокировке видимости
+var vision_blocking_tiles = []
+
 # Константы для типов тайлов (ID нужно заменить на ваши)
 enum LandscapeType {
 	GRASS = 0,
@@ -60,6 +76,10 @@ func _ready():
 	# Инициализация массива проходимости
 	walkable_tiles.resize(map_width * map_height)
 	walkable_tiles.fill(true)
+	
+	# Добавьте инициализацию массива блокировки видимости
+	vision_blocking_tiles.resize(map_width * map_height)
+	vision_blocking_tiles.fill(false)
 	
 	no_obstacles_cells = []
 	
@@ -284,6 +304,7 @@ func generate_fallen_trees():
 			obstacles_layer.set_cell(Vector2i(x + 1, y), ObstacleType.FALLEN_TREE_LEFT, Vector2i(ran_index * 2 + 1, 0))
 			update_walkability(x + 1, y, ObstacleType.FALLEN_TREE_RIGHT, false)
 
+
 func update_walkability(x: int, y: int, tile_type, is_landscape: bool):
 	var index = y * map_width + x
 	
@@ -294,9 +315,11 @@ func update_walkability(x: int, y: int, tile_type, is_landscape: bool):
 	# Если это ландшафт, обновляем напрямую
 	if is_landscape:
 		walkable_tiles[index] = walkability[tile_type]
+		vision_blocking_tiles[index] = visibility_blocking[tile_type]
 	else:
-		# Если это препятствие, то клетка становится непроходимой, независимо от типа ландшафта
+		# Если это препятствие, обновляем оба массива
 		walkable_tiles[index] = false
+		vision_blocking_tiles[index] = visibility_blocking[tile_type]
 
 func is_tile_walkable(x: int, y: int) -> bool:
 	var index = y * map_width + x
@@ -417,3 +440,14 @@ func create_enemy_at_position(player_pos: Vector2i) -> Enemy:
 			enemy_instance.sprite.visible = true
 	
 	return enemy_instance
+
+
+# Проверяет, блокирует ли клетка линию видимости
+func is_tile_blocking_vision(x: int, y: int) -> bool:
+	var index = y * map_width + x
+	
+	# Проверка выхода за границы
+	if x < 0 or y < 0 or x >= map_width or y >= map_height or index >= vision_blocking_tiles.size():
+		return true  # За границами всегда считаем, что видимость блокируется
+	
+	return vision_blocking_tiles[index]
