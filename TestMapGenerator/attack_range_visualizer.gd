@@ -110,10 +110,6 @@ func _draw():
 	if show_range_circles:
 		draw_range_circles()
 	
-	# Отрисовка линий сетки
-	if show_grid_lines:
-		draw_grid()
-	
 	# Отрисовка базового поля зрения
 	draw_field_of_view()
 	
@@ -152,12 +148,6 @@ func draw_field_of_view():
 			var border_color = cell_color
 			border_color.a = min(border_color.a + 0.2, 1.0)
 			draw_rect(rect, border_color, false, cell_border_thickness, false)
-		
-		# Отображаем шанс попадания, если он есть и включено отображение
-		if show_percent_text and hit_chance > 0:
-			var text = str(hit_chance) + "%"
-			var text_position = cell_center + Vector2(0, 2)
-			draw_string_with_shadow(text, text_position, hit_chance)
 
 # Рисование целей
 func draw_targets():
@@ -181,24 +171,6 @@ func draw_targets():
 			var text = str(hit_chance) + "%"
 			var text_position = cell_center + Vector2(0, 2)
 			draw_string_with_outline(text, text_position, hit_chance)
-
-# Рисуем сетку для визуального разделения клеток
-func draw_grid():
-	var viewport_rect = get_viewport_rect()
-	var start_cell = landscape_layer.local_to_map(to_local(viewport_rect.position - Vector2(100, 100)))
-	var end_cell = landscape_layer.local_to_map(to_local(viewport_rect.end + Vector2(100, 100)))
-	
-	# Рисуем вертикальные линии
-	for x in range(start_cell.x, end_cell.x + 1):
-		var start = landscape_layer.map_to_local(Vector2i(x, start_cell.y))
-		var end = landscape_layer.map_to_local(Vector2i(x, end_cell.y))
-		draw_line(start, end, line_color, 1.0)
-	
-	# Рисуем горизонтальные линии
-	for y in range(start_cell.y, end_cell.y + 1):
-		var start = landscape_layer.map_to_local(Vector2i(start_cell.x, y))
-		var end = landscape_layer.map_to_local(Vector2i(end_cell.x, y))
-		draw_line(start, end, line_color, 1.0)
 
 # Рисуем круги эффективного и среднего радиуса атаки
 func draw_range_circles():

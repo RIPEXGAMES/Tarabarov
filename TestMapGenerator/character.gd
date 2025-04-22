@@ -380,17 +380,39 @@ func is_cell_visible(target_cell: Vector2i) -> bool:
 	# Проверка препятствий с помощью алгоритма Брезенхема
 	return is_line_of_sight_clear(current_cell, target_cell)
 
-# Проверка линии видимости с помощью алгоритма Брезенхема
+# Улучшенная проверка линии видимости с учетом диагоналей
 func is_line_of_sight_clear(from_cell: Vector2i, to_cell: Vector2i) -> bool:
 	var line = get_line_between_cells(from_cell, to_cell)
 	
-	# Проверяем каждую клетку на пути (кроме начальной и конечной)
-	for i in range(1, line.size() - 1):
+	# Проверяем каждую клетку на пути (кроме начальной)
+	for i in range(1, line.size()):
 		var cell = line[i]
 		
-		# Проверяем, блокирует ли клетка линию видимости
+		# Если это конечная точка, не проверяем её на блокировку
+		if cell == to_cell:
+			continue
+			
+		# Проверяем текущую клетку
 		if map_generator.is_tile_blocking_vision(cell.x, cell.y):
 			return false
+			
+		# Дополнительно проверяем диагональное движение
+		if i > 0:
+			var prev_cell = line[i-1]
+			
+			# Если движение по диагонали
+			if abs(cell.x - prev_cell.x) == 1 and abs(cell.y - prev_cell.y) == 1:
+				# Проверяем обе соседние клетки (это ключевой момент)
+				# Клетка по горизонтали от предыдущей
+				var corner1 = Vector2i(prev_cell.x, cell.y)
+				# Клетка по вертикали от предыдущей
+				var corner2 = Vector2i(cell.x, prev_cell.y)
+				
+				# Если обе угловые клетки блокируют обзор, то линия видимости прерывается
+				if map_generator.is_tile_blocking_vision(corner1.x, corner1.y) and map_generator.is_tile_blocking_vision(corner2.x, corner2.y):
+					debug_print("Diagonal vision blocked between " + 
+							   str(prev_cell) + " and " + str(cell))
+					return false
 	
 	return true
 
