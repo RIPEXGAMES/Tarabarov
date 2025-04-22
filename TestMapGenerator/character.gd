@@ -63,6 +63,14 @@ var move_manager = null
 var tween: Tween = null
 var movement_in_progress: bool = false
 
+# Добавьте эти переменные в начало класса
+var last_fov_update_time: float = 0.0
+var fov_update_interval: float = 0.1  # Обновление поля зрения не чаще 10 раз в секунду
+var last_facing_direction: Vector2 = Vector2.RIGHT
+var facing_direction_threshold: float = 0.01  # Минимальное изменение направления для пересчета
+var debug_log_fov: bool = false  # Отключаем избыточное логирование поля зрения
+
+
 func _ready():
 	debug_print("Character._ready() started")
 	
@@ -274,13 +282,29 @@ func update_sprite_direction(direction: Vector2):
 	
 	debug_print("Updated facing direction: " + str(facing_direction))
 
+# Модифицируйте метод update_facing_direction_to_mouse
 func update_facing_direction_to_mouse():
 	var mouse_pos = get_global_mouse_position()
 	var direction_to_mouse = global_position.direction_to(mouse_pos)
 	
+	# Проверяем, достаточно ли изменилось направление для пересчета
+	if direction_to_mouse.distance_to(last_facing_direction) < facing_direction_threshold:
+		return
+	
+	# Ограничиваем частоту обновления поля зрения
+	var current_time = Time.get_ticks_msec() / 1000.0
+	var should_update_fov = current_time - last_fov_update_time >= fov_update_interval
+	
+	# Всегда обновляем направление спрайта
 	facing_direction = direction_to_mouse
 	update_sprite_direction(direction_to_mouse)
-	update_field_of_view()
+	
+	# Обновляем поле зрения только при значительном изменении или по таймеру
+	if should_update_fov:
+		last_fov_update_time = current_time
+		last_facing_direction = direction_to_mouse
+		update_field_of_view()
+
 
 func toggle_attack_mode():
 	if !attack_mode:
@@ -381,6 +405,7 @@ func is_cell_visible(target_cell: Vector2i) -> bool:
 	return is_line_of_sight_clear(current_cell, target_cell)
 
 # Улучшенная проверка линии видимости с учетом диагоналей
+# Модифицируйте метод is_line_of_sight_clear
 func is_line_of_sight_clear(from_cell: Vector2i, to_cell: Vector2i) -> bool:
 	var line = get_line_between_cells(from_cell, to_cell)
 	
@@ -402,16 +427,13 @@ func is_line_of_sight_clear(from_cell: Vector2i, to_cell: Vector2i) -> bool:
 			
 			# Если движение по диагонали
 			if abs(cell.x - prev_cell.x) == 1 and abs(cell.y - prev_cell.y) == 1:
-				# Проверяем обе соседние клетки (это ключевой момент)
-				# Клетка по горизонтали от предыдущей
 				var corner1 = Vector2i(prev_cell.x, cell.y)
-				# Клетка по вертикали от предыдущей
 				var corner2 = Vector2i(cell.x, prev_cell.y)
 				
 				# Если обе угловые клетки блокируют обзор, то линия видимости прерывается
 				if map_generator.is_tile_blocking_vision(corner1.x, corner1.y) and map_generator.is_tile_blocking_vision(corner2.x, corner2.y):
-					debug_print("Diagonal vision blocked between " + 
-							   str(prev_cell) + " and " + str(cell))
+					# Убираем отладочный вывод для повышения производительности
+					# debug_print("Diagonal vision blocked between " + str(prev_cell) + " and " + str(cell))
 					return false
 	
 	return true
@@ -611,8 +633,17 @@ func _on_path_cost_updated(cost: int):
 	emit_signal("path_cost_changed", cost)
 	debug_print("Path cost updated: " + str(cost))
 
+# Модифицируйте метод debug_print
 func debug_print(message: String):
+	# Фильтруем частые сообщения
 	if debug_mode:
+		# Пропускаем сообщения об обновлении поля зрения, если флаг выключен
+		if not debug_log_fov and (
+			message.begins_with("Field of view updated") or
+			message.begins_with("Updated facing direction") or
+			message.begins_with("Diagonal vision blocked")
+		):
+			return
 		print(message)
 
 # Обновление параметров атаки на основе оружия
