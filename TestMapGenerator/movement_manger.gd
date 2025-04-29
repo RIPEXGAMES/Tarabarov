@@ -1,49 +1,48 @@
 class_name MoveManager
 extends Node
 
-# Сигналы для оповещения подписчиков
+#region Сигналы
 signal available_cells_updated
 signal path_updated
 signal path_cost_updated(cost)
 signal path_split_updated(available_steps)
+#endregion
 
+#region Переменные перемещения
 # Массив доступных клеток для перемещения
 var available_cells: Array[Vector2i] = []
 
-# Текущий путь, который будет отображаться
+# Данные о пути
 var current_path: Array[Vector2i] = []
-
-# Количество шагов в пути, которые можно пройти с текущими AP
 var available_path_steps: int = 0
 
-# Текущая клетка персонажа
+# Позиции персонажа
 var character_cell: Vector2i = Vector2i.ZERO
-
-# Клетка, выбранная для перемещения
 var selected_cell: Vector2i = Vector2i(-1, -1)
 
-# Ссылки на другие узлы
+# Ссылка на генератор карты
 var map_generator: MapGenerator
 
-# Очки действия персонажа и максимальное количество AP
+# Очки действия
 var current_ap: int = 0
 var max_ap: int = 50
+#endregion
 
-# Инициализация
+#region Инициализация
 func initialize(mapGen: MapGenerator, startCell: Vector2i, actionPoints: int, maxActionPoints: int):
 	map_generator = mapGen
 	character_cell = startCell
 	current_ap = actionPoints
 	max_ap = maxActionPoints
 	
-	# Сразу обновляем доступные клетки
 	update_available_cells()
+#endregion
 
-# Обновление доступных клеток на основе текущей позиции и оставшихся AP
+#region Управление доступными клетками
 func update_available_cells():
 	available_cells.clear()
 	
-	# Если нет AP, то и перемещаться некуда
+	# Если нет AP, то перемещаться некуда
 	if current_ap <= 0:
 		emit_signal("available_cells_updated")
 		return
@@ -81,39 +80,22 @@ func update_available_cells():
 		if current_cost >= current_ap:
 			continue
 		
-		# Обрабатываем соседей в 4 направлениях (можно расширить до 8 для диагоналей)
-		var directions = [
-			Vector2i(0, -1),  # Вверх
-			Vector2i(1, 0),   # Вправо
-			Vector2i(0, 1),   # Вниз
-			Vector2i(-1, 0)   # Влево
-		]
-		
-		# Добавляем диагональные направления, если разрешено
-		directions.append_array([
-			Vector2i(1, -1),   # Вправо-вверх
-			Vector2i(1, 1),    # Вправо-вниз
-			Vector2i(-1, 1),   # Влево-вниз
-			Vector2i(-1, -1)   # Влево-вверх
-		])
+		# Получаем направления движения
+		var directions = get_movement_directions()
 		
 		for dir in directions:
 			var next_pos = current_pos + dir
 			
-			# Проверяем, проходима ли клетка
+			# Проверяем проходимость
 			if !map_generator.is_tile_walkable(next_pos.x, next_pos.y):
 				continue
 				
-			# Стоимость движения (для диагоналей делаем выше)
-			var move_cost = 10
-			if dir.x != 0 and dir.y != 0:
-				move_cost = 15
+			# Определяем стоимость движения
+			var move_cost = get_movement_cost(dir)
 			
-				# Для диагонального движения проверяем, можно ли пройти
-				var x_neighbor = Vector2i(current_pos.x + dir.x, current_pos.y)
-				var y_neighbor = Vector2i(current_pos.x, current_pos.y + dir.y)
-
-				if !(map_generator.is_tile_walkable(x_neighbor.x, x_neighbor.y) or map_generator.is_tile_walkable(y_neighbor.x, y_neighbor.y)):
+			# Проверяем диагональное движение
+			if dir.x != 0 and dir.y != 0:
+				if !is_diagonal_move_valid(current_pos, dir):
 					continue
 			
 			# Вычисляем новую стоимость
@@ -128,37 +110,37 @@ func update_available_cells():
 				costs[next_pos] = new_cost
 				queue.append({"pos": next_pos, "cost": new_cost})
 	
-	# Оповещаем о том, что доступные клетки обновились
 	emit_signal("available_cells_updated")
 
-# Проверка, доступна ли клетка для перемещения
 func is_cell_available(cell: Vector2i) -> bool:
 	return available_cells.has(cell)
 
-# Проверка, проходима ли клетка (без учета AP)
 func is_cell_walkable(cell: Vector2i) -> bool:
 	return map_generator.is_tile_walkable(cell.x, cell.y)
 
-# Обновление пути между текущей клеткой и выбранной целевой
+func is_diagonal_move_valid(current_pos: Vector2i, dir: Vector2i) -> bool:
+	var x_neighbor = Vector2i(current_pos.x + dir.x, current_pos.y)
+	var y_neighbor = Vector2i(current_pos.x, current_pos.y + dir.y)
+	
+	return map_generator.is_tile_walkable(x_neighbor.x, x_neighbor.y) or \
+		   map_generator.is_tile_walkable(y_neighbor.x, y_neighbor.y)
+#endregion
+
+#region Управление путем
 func update_path_to_cell(target_cell: Vector2i):
-	# Проверяем, проходима ли целевая клетка
 	if !is_cell_walkable(target_cell):
-		current_path.clear()
-		available_path_steps = 0
-		emit_signal("path_updated")
-		emit_signal("path_split_updated", 0)
+		clear_path()
 		return
 	
-	# Строим путь от клетки персонажа до целевой клетки, включая недоступные
+	# Строим путь от клетки персонажа до целевой клетки
 	current_path = find_path_to_any_cell(character_cell, target_cell)
 	
-	# Определяем, сколько шагов пути доступно с текущими AP
+	# Определяем доступную часть пути
 	calculate_available_path_steps()
 	
 	emit_signal("path_updated")
 	emit_signal("path_split_updated", available_path_steps)
 
-# Рассчитываем, сколько шагов пути доступно с текущими AP
 func calculate_available_path_steps():
 	available_path_steps = 0
 	var remaining_ap = current_ap
@@ -168,85 +150,39 @@ func calculate_available_path_steps():
 		var to = current_path[i]
 		var dir = to - from
 		
-		# Стоимость шага
-		var step_cost = 10
-		if dir.x != 0 and dir.y != 0:
-			step_cost = 15
+		var step_cost = get_movement_cost(dir)
 		
-		# Если не хватает AP, завершаем
 		if remaining_ap < step_cost:
 			break
 		
 		remaining_ap -= step_cost
 		available_path_steps += 1
 
-# Выбор клетки для перемещения
+func clear_path():
+	current_path.clear()
+	available_path_steps = 0
+	emit_signal("path_updated")
+	emit_signal("path_split_updated", 0)
+#endregion
+
+#region Выбор и перемещение
 func select_cell(cell: Vector2i) -> bool:
-	# Проверяем, проходима ли клетка (а не только доступна)
 	if !is_cell_walkable(cell):
 		return false
 	
 	selected_cell = cell
 	update_path_to_cell(cell)
 	
-	# Рассчитываем и отправляем стоимость пути
 	var path_cost = calculate_path_cost(current_path)
 	emit_signal("path_cost_updated", path_cost)
 	
 	return true
 
-# Очистка выбора клетки
 func clear_selection():
 	selected_cell = Vector2i(-1, -1)
-	current_path.clear()
-	available_path_steps = 0
-	emit_signal("path_updated")
-	emit_signal("path_split_updated", 0)
-	# Отправляем сигнал с нулевой стоимостью при очистке выбора
+	clear_path()
 	emit_signal("path_cost_updated", 0)
 
-# Расчет стоимости пути
-func calculate_path_cost(path: Array) -> int:
-	var total_cost = 0
-	
-	# Если путь пустой, стоимость равна 0
-	if path.size() == 0:
-		return total_cost
-	
-	# Если путь состоит только из одной точки (первая клетка)
-	if path.size() == 1:
-		# Проверяем, не является ли эта точка текущей позицией персонажа
-		if path[0] != character_cell:
-			# Стоимость перемещения на соседнюю клетку
-			var dir = path[0] - character_cell
-			if dir.x != 0 and dir.y != 0:
-				total_cost = 15  # Диагональное движение
-			else:
-				total_cost = 10  # Обычное движение
-		return total_cost
-	
-	# Добавляем стоимость от текущей позиции персонажа до первой клетки пути
-	var dir_to_first = path[0] - character_cell
-	if dir_to_first.x != 0 and dir_to_first.y != 0:
-		total_cost += 15  # Диагональное движение
-	else:
-		total_cost += 10  # Обычное движение
-	
-	# Считаем стоимость каждого шага пути
-	for i in range(1, path.size()):
-		var from = path[i-1]
-		var to = path[i]
-		var dir = to - from
-		
-		# Диагональное движение стоит 15, обычное - 10
-		if dir.x != 0 and dir.y != 0:
-			total_cost += 15  # Диагональное движение
-		else:
-			total_cost += 10  # Обычное движение
-	
-	return total_cost
-
-# Перемещение персонажа в выбранную клетку
 func move_to_selected_cell() -> Array[Vector2i]:
 	if selected_cell == Vector2i(-1, -1) or current_path.size() == 0:
 		return []
@@ -257,15 +193,14 @@ func move_to_selected_cell() -> Array[Vector2i]:
 	for i in range(min(available_path_steps, current_path.size())):
 		path_copy.append(current_path[i])
 	
-	# Уменьшаем AP на длину пути с учетом стоимости
+	# Уменьшаем AP на длину пути
 	for i in range(1, path_copy.size()):
-		var dir = path_copy[i] - path_copy[i - 1]
-		if dir.x != 0 and dir.y != 0:
-			current_ap -= 15  # Диагональное движение
-		else:
-			current_ap -= 10  # Обычное движение
+		var from = path_copy[i-2] if i > 1 else character_cell  # Правильный синтаксис для GDScript
+		var to = path_copy[i-1]
+		var dir = to - from
+		current_ap -= get_movement_cost(dir)
 	
-	# Если путь не пустой, обновляем текущую клетку персонажа
+	# Обновляем текущую клетку персонажа
 	if path_copy.size() > 0:
 		character_cell = path_copy[path_copy.size() - 1]
 	
@@ -276,25 +211,47 @@ func move_to_selected_cell() -> Array[Vector2i]:
 	update_available_cells()
 	
 	return path_copy
+#endregion
 
-# Получение текущего пути
-func get_current_path() -> Array[Vector2i]:
-	return current_path
+#region Расчет стоимости
+func calculate_path_cost(path: Array) -> int:
+	var total_cost = 0
+	
+	if path.size() == 0:
+		return 0
+	
+	# Стоимость первого шага
+	if path.size() >= 1:
+		var dir = path[0] - character_cell
+		total_cost += get_movement_cost(dir)
+	
+	# Стоимость последующих шагов
+	for i in range(1, path.size()):
+		var dir = path[i] - path[i-1]
+		total_cost += get_movement_cost(dir)
+	
+	return total_cost
 
-# Получение количества доступных шагов пути
-func get_available_path_steps() -> int:
-	return available_path_steps
+func get_movement_cost(dir: Vector2i) -> int:
+	return 15 if (dir.x != 0 and dir.y != 0) else 10
 
-# Восстановление AP
-func restore_ap():
-	current_ap = max_ap
-	update_available_cells()
+func get_movement_directions() -> Array:
+	return [
+		Vector2i(0, -1),  # Вверх
+		Vector2i(1, 0),   # Вправо
+		Vector2i(0, 1),   # Вниз
+		Vector2i(-1, 0),  # Влево
+		Vector2i(1, -1),  # Вправо-вверх
+		Vector2i(1, 1),   # Вправо-вниз
+		Vector2i(-1, 1),  # Влево-вниз
+		Vector2i(-1, -1)  # Влево-вверх
+	]
+#endregion
 
-# Алгоритм A* для построения пути до любой клетки (без ограничения AP)
+#region Поиск пути
 func find_path_to_any_cell(start_cell: Vector2i, end_cell: Vector2i) -> Array[Vector2i]:
 	var result_path: Array[Vector2i] = []
 	
-	# Если начальная и конечная клетки совпадают, возвращаем пустой путь
 	if start_cell == end_cell:
 		return result_path
 	
@@ -305,11 +262,12 @@ func find_path_to_any_cell(start_cell: Vector2i, end_cell: Vector2i) -> Array[Ve
 	var cell_to_id = {}
 	var id_counter = 0
 	
-	# Подготовка к поиску пути - добавляем все проходимые клетки в области поиска
-	var min_x = min(start_cell.x, end_cell.x) - 20
-	var max_x = max(start_cell.x, end_cell.x) + 20
-	var min_y = min(start_cell.y, end_cell.y) - 20
-	var max_y = max(start_cell.y, end_cell.y) + 20
+	# Определяем область поиска
+	var search_margin = 20
+	var min_x = min(start_cell.x, end_cell.x) - search_margin
+	var max_x = max(start_cell.x, end_cell.x) + search_margin
+	var min_y = min(start_cell.y, end_cell.y) - search_margin
+	var max_y = max(start_cell.y, end_cell.y) + search_margin
 	
 	# Добавляем все проходимые клетки в области поиска
 	for x in range(min_x, max_x):
@@ -326,35 +284,18 @@ func find_path_to_any_cell(start_cell: Vector2i, end_cell: Vector2i) -> Array[Ve
 		var cell = Vector2i(cell_vec.x, cell_vec.y)
 		var cell_id = cell_to_id[cell]
 		
-		# Направления для соседей
-		var directions = [
-			Vector2i(0, -1),  # Вверх
-			Vector2i(1, 0),   # Вправо
-			Vector2i(0, 1),   # Вниз
-			Vector2i(-1, 0),  # Влево
-			Vector2i(1, -1),  # Вправо-вверх
-			Vector2i(1, 1),   # Вправо-вниз
-			Vector2i(-1, 1),  # Влево-вниз
-			Vector2i(-1, -1)  # Влево-вверх
-		]
-		
-		for dir in directions:
+		for dir in get_movement_directions():
 			var neighbor = cell + dir
 			
 			if neighbor in cell_to_id:
 				var neighbor_id = cell_to_id[neighbor]
 				
-				# Вес ребра (для диагоналей делаем больше)
-				var weight = 10.0
+				# Вес ребра (для диагоналей больше)
+				var weight = get_movement_cost(dir)
+				
+				# Проверка для диагональных движений
 				if dir.x != 0 and dir.y != 0:
-					# Исправленная проверка для диагоналей
-					var x_neighbor = Vector2i(cell.x + dir.x, cell.y)
-					var y_neighbor = Vector2i(cell.x, cell.y + dir.y)
-
-					# Для диагонального движения хотя бы одна из соседних клеток должна быть проходимой
-					if is_cell_walkable(x_neighbor) or is_cell_walkable(y_neighbor):
-						weight = 15.0
-					else:
+					if !is_diagonal_move_valid(cell, dir):
 						continue
 				
 				if !astar.are_points_connected(cell_id, neighbor_id):
@@ -379,7 +320,20 @@ func find_path_to_any_cell(start_cell: Vector2i, end_cell: Vector2i) -> Array[Ve
 		result_path.remove_at(0)
 	
 	return result_path
+#endregion
 
-# Добавляем старый метод find_path для обратной совместимости
+#region Вспомогательные функции
+func restore_ap():
+	current_ap = max_ap
+	update_available_cells()
+
+func get_current_path() -> Array[Vector2i]:
+	return current_path
+
+func get_available_path_steps() -> int:
+	return available_path_steps
+
+# Для совместимости
 func find_path(start_cell: Vector2i, end_cell: Vector2i) -> Array[Vector2i]:
 	return find_path_to_any_cell(start_cell, end_cell)
+#endregion

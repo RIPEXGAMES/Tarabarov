@@ -1,6 +1,7 @@
 class_name PathVisualizer
 extends Node2D
 
+#region Экспортируемые параметры
 # Ссылки на узлы
 @export var character_path: NodePath = "../Character"
 @export var landscape_layer_path: NodePath = "../Landscape"
@@ -11,77 +12,74 @@ extends Node2D
 @export var selected_path_color: Color = Color(1, 1, 0, 0.5)
 @export var unavailable_color: Color = Color(1, 0, 0, 0.3)
 
-# Размер точек пути
+# Настройки визуализации
 @export var point_size: float = 5.0
-
-# Текстуры для точек пути
 @export var path_point_texture: Texture2D
 @export var preview_point_texture: Texture2D
 @export var selected_point_texture: Texture2D
 @export var unavailable_point_texture: Texture2D
+#endregion
 
+#region Внутренние переменные
 var character: Character
 var landscape_layer: TileMapLayer
 var move_manager = null
 var available_path_steps: int = 0
+#endregion
 
+#region Инициализация
 func _ready():
-	print("PathVisualizer._ready() started")
+	# Получаем ссылки на узлы
+	character = get_node_or_null(character_path)
+	landscape_layer = get_node_or_null(landscape_layer_path)
 	
-	# Получаем ссылки на объекты
-	character = get_node(character_path)
-	landscape_layer = get_node(landscape_layer_path)
+	if not character or not landscape_layer:
+		push_error("PathVisualizer: Не удалось найти требуемые узлы")
+		return
+		
+	# Инициализация текстур
+	init_textures()
 	
 	# Подписываемся на сигнал изменения пути персонажа
 	character.connect("path_changed", _on_character_path_changed)
 	
-	# Проверяем ссылки
-	if not character:
-		push_error("Character not found at path: " + str(character_path))
-	else:
-		print("Character found")
+	# Ждем создания менеджера перемещений
+	await get_tree().process_frame
 	
-	if not landscape_layer:
-		push_error("Landscape layer not found at path: " + str(landscape_layer_path))
+	# Получаем ссылку на менеджер перемещений
+	if character.has_method("get") and character.get("move_manager"):
+		move_manager = character.move_manager
+		move_manager.connect("path_updated", _on_path_updated)
+		move_manager.connect("path_split_updated", _on_path_split_updated)
+		print("PathVisualizer инициализирован")
 	else:
-		print("Landscape layer found")
-	
-	# Проверка текстур
-	if not path_point_texture:
-		push_warning("Path point texture not assigned. Using default circle drawing.")
+		push_error("PathVisualizer: Не удалось получить MoveManager!")
+
+func init_textures():
+	# Проверка и назначение текстур по умолчанию
 	if not preview_point_texture:
 		preview_point_texture = path_point_texture
 	if not selected_point_texture:
 		selected_point_texture = path_point_texture
 	if not unavailable_point_texture:
 		unavailable_point_texture = path_point_texture
-	
-	# Ждем создания менеджера перемещений
-	await get_tree().process_frame
-	
-	# Получаем ссылку на менеджер перемещений
-	move_manager = character.move_manager
-	if move_manager == null:
-		push_error("PathVisualizer: Не удалось получить MoveManager!")
-		return
-	
-	# Подписываемся на сигналы
-	move_manager.connect("path_updated", _on_path_updated)
-	move_manager.connect("path_split_updated", _on_path_split_updated)
-	
-	print("PathVisualizer initialized")
+#endregion
 
-# Обработчик обновления пути
+#region Обработчики сигналов
 func _on_path_updated():
 	queue_redraw()
 
-# Обработчик обновления разделения пути
 func _on_path_split_updated(steps: int):
 	available_path_steps = steps
 	queue_redraw()
 
+func _on_character_path_changed(_new_path):
+	queue_redraw()
+#endregion
+
+#region Методы отрисовки
 func _process(_delta):
-	# Обновляем отрисовку пути
+	# Обновляем отрисовку пути при необходимости
 	queue_redraw()
 
 func _draw():
@@ -102,8 +100,6 @@ func _draw():
 			var selected_cell_position = landscape_layer.map_to_local(move_manager.selected_cell)
 			draw_selected_cell_highlight(selected_cell_position)
 
-# Функция для отрисовки пути с разделением на доступную и недоступную части
-# Функция для отрисовки пути с разделением на доступную и недоступную части
 func draw_split_path(path_to_draw: Array, available_steps: int):
 	if path_to_draw.size() == 0:
 		return
@@ -127,8 +123,6 @@ func draw_split_path(path_to_draw: Array, available_steps: int):
 	for i in range(available_steps, path_to_draw.size()):
 		unavailable_points.append(landscape_layer.map_to_local(path_to_draw[i]))
 	
-	# ИЗМЕНЕНО: Сначала рисуем ВСЕ линии, затем ВСЕ точки
-	
 	# 1. Рисуем все линии доступной части пути
 	for i in range(available_points.size() - 1):
 		draw_line(to_local(available_points[i]), to_local(available_points[i + 1]), 
@@ -139,35 +133,14 @@ func draw_split_path(path_to_draw: Array, available_steps: int):
 		draw_line(to_local(unavailable_points[i]), to_local(unavailable_points[i + 1]), 
 			unavailable_color, 2.0)
 	
-	# 3. Рисуем все точки доступной части пути
-	for i in range(1, available_points.size()):  # Начинаем с 1, чтобы пропустить точку персонажа
-		if selected_point_texture:
-			var texture_size = Vector2(selected_point_texture.get_size())
-			var position = to_local(available_points[i]) - texture_size / 2
-			draw_texture(selected_point_texture, position)
-		else:
-			draw_circle(to_local(available_points[i]), point_size, path_color)
+	# 3. Рисуем все точки доступной части пути (кроме точки персонажа)
+	for i in range(1, available_points.size()):
+		draw_path_point(available_points[i], selected_point_texture, path_color)
 	
-	# 4. Рисуем все точки недоступной части пути, кроме первой (она совпадает с последней точкой доступной части)
+	# 4. Рисуем все точки недоступной части пути (кроме первой)
 	for i in range(1, unavailable_points.size()):
-		if unavailable_point_texture:
-			var texture_size = Vector2(unavailable_point_texture.get_size())
-			var position = to_local(unavailable_points[i]) - texture_size / 2
-			draw_texture(unavailable_point_texture, position)
-		else:
-			draw_circle(to_local(unavailable_points[i]), point_size, unavailable_color)
+		draw_path_point(unavailable_points[i], unavailable_point_texture, unavailable_color)
 
-# Функция для отрисовки выделения выбранной клетки
-func draw_selected_cell_highlight(position: Vector2):
-	# Получаем размер клетки
-	var cell_size = Vector2(landscape_layer.tile_set.tile_size)
-	
-	# Рисуем рамку
-	var local_pos = to_local(position)
-	var rect = Rect2(local_pos - cell_size/2, cell_size)
-	draw_rect(rect, selected_path_color, false, 2.0)
-
-# Функция отрисовки пути (используется для пути персонажа)
 func draw_path(path_to_draw: Array, line_color: Color, point_texture: Texture2D = null):
 	if path_to_draw.size() == 0:
 		return
@@ -181,18 +154,26 @@ func draw_path(path_to_draw: Array, line_color: Color, point_texture: Texture2D 
 	for cell in path_to_draw:
 		points.append(landscape_layer.map_to_local(cell))
 	
-	# Рисуем линию
+	# Рисуем линии
 	for i in range(points.size() - 1):
 		draw_line(to_local(points[i]), to_local(points[i + 1]), line_color, 2.0)
 	
 	# Рисуем точки
 	for point in points:
-		if point_texture:
-			var texture_size = Vector2(point_texture.get_size())
-			var position = to_local(point) - texture_size / 2
-			draw_texture(point_texture, position)
-		else:
-			draw_circle(to_local(point), point_size, line_color)
+		draw_path_point(point, point_texture, line_color)
 
-func _on_character_path_changed(new_path):
-	queue_redraw()  # Перерисовываем путь
+func draw_path_point(world_pos: Vector2, texture: Texture2D, fallback_color: Color):
+	var local_pos = to_local(world_pos)
+	
+	if texture:
+		var texture_size = Vector2(texture.get_size())
+		draw_texture(texture, local_pos - texture_size / 2)
+	else:
+		draw_circle(local_pos, point_size, fallback_color)
+
+func draw_selected_cell_highlight(position: Vector2):
+	var cell_size = Vector2(landscape_layer.tile_set.tile_size)
+	var local_pos = to_local(position)
+	var rect = Rect2(local_pos - cell_size/2, cell_size)
+	draw_rect(rect, selected_path_color, false, 2.0)
+#endregion

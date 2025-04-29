@@ -1,7 +1,7 @@
 class_name Character
 extends Node2D
 
-# Сигналы
+#region Сигналы
 signal move_finished
 signal end_turn_requested
 signal cell_changed(old_cell, new_cell)
@@ -12,67 +12,64 @@ signal attack_executed(target_cell)
 signal attack_started(target_enemy)
 signal field_of_view_changed(visible_cells_array, hit_chances)
 signal weapon_changed(weapon)
+#endregion
 
-# Настройки персонажа
+#region Экспортируемые настройки
+# Базовые характеристики
 @export var move_speed: float = 4.0
 @export var action_points: int = 50
 @export var allow_diagonal: bool = true
 @export var debug_mode: bool = true
-@export var attack_cost: int = 20   # Стоимость атаки
-@export var attack_damage: int = 25  # Базовый урон от атаки
 
-# Текущее оружие
+# Настройки атаки
+@export var attack_cost: int = 20
+@export var attack_damage: int = 25
 @export var current_weapon: Weapon
 
 # Параметры поля зрения и атаки
-@export var field_of_view_angle: float = 120.0  # Угол поля зрения в градусах
-@export var max_view_distance: int = 100  # Максимальная дальность обзора
-@export var effective_attack_range: int = 30   # Эффективный радиус атаки (шанс 80%)
-@export_range(0, 100) var base_hit_chance: int = 80  # Базовый шанс попадания в эффективном радиусе
-@export_range(0, 100) var medium_distance_hit_chance: int = 40  # Шанс попадания на средней дистанции
+@export var field_of_view_angle: float = 120.0
+@export var max_view_distance: int = 100
+@export var effective_attack_range: int = 30
+@export_range(0, 100) var base_hit_chance: int = 80
+@export_range(0, 100) var medium_distance_hit_chance: int = 40
+#endregion
 
-# Текущее направление персонажа (для поля зрения)
-var facing_direction: Vector2 = Vector2.RIGHT  # По умолчанию смотрит вправо
-
-# Массивы для хранения видимых клеток и вероятностей попадания
-var visible_cells: Array = []  # Все клетки в поле зрения
-var hit_chance_map: Dictionary = {}  # Словарь вероятностей попадания {клетка: шанс}
-var available_attack_cells: Array = [] # Клетки с противниками в поле зрения
-
+#region Внутренние переменные
 # Состояние персонажа
 var current_cell: Vector2i = Vector2i.ZERO
+var remaining_ap: int = 0
+var facing_direction: Vector2 = Vector2.RIGHT
 var is_moving: bool = false
-var remaining_ap: int = action_points
 var attack_mode: bool = false
 var is_attacking: bool = false
 
-# Переменные для пути
+# Системные переменные
 var path: Array = []
 var movement_queue: Array = []
+var movement_in_progress: bool = false
+var tween: Tween = null
 
-# Ссылки на узлы
+# Поле зрения
+var visible_cells: Array = []
+var hit_chance_map: Dictionary = {}
+var available_attack_cells: Array = []
+var last_fov_update_time: float = 0.0
+var fov_update_interval: float = 0.1
+var last_facing_direction: Vector2 = Vector2.RIGHT
+var facing_direction_threshold: float = 0.01
+#endregion
+
+#region Ссылки на узлы
 @onready var map_generator: MapGenerator = get_node("../MapGenerator")
 @onready var sprite: Sprite2D = $Sprite2D
-@onready var landscape_layer: TileMapLayer = get_node("../Landscape") 
+@onready var landscape_layer: TileMapLayer = get_node("../Landscape")
 @onready var game_controller: Node = get_node("../GameContoller")
-
-# Ссылка на менеджер перемещений
 var move_manager = null
+#endregion
 
-# Движение и анимация
-var tween: Tween = null
-var movement_in_progress: bool = false
-
-# Добавьте эти переменные в начало класса
-var last_fov_update_time: float = 0.0
-var fov_update_interval: float = 0.1  # Обновление поля зрения не чаще 10 раз в секунду
-var last_facing_direction: Vector2 = Vector2.RIGHT
-var facing_direction_threshold: float = 0.01  # Минимальное изменение направления для пересчета
-var debug_log_fov: bool = false  # Отключаем избыточное логирование поля зрения
-
-
+#region Инициализация
 func _ready():
-	debug_print("Character._ready() started")
+	debug_print("Character initialized")
 	
 	# Проверка необходимых узлов
 	validate_dependencies()
@@ -91,32 +88,34 @@ func _ready():
 	
 	# Инициализируем оружие, если оно установлено
 	update_weapon_parameters()
-	
-	debug_print("Character._ready() completed, AP: " + str(remaining_ap))
 
 func validate_dependencies():
 	if not map_generator:
 		push_error("MapGenerator not found!")
-	else:
-		debug_print("MapGenerator found")
-	
 	if not landscape_layer:
 		push_error("Landscape layer not found!")
-	else:
-		debug_print("Landscape layer found")
-	
 	if not game_controller:
 		push_error("GameController not found!")
-	else:
-		debug_print("GameController found, can_player_act() returns: " + str(game_controller.can_player_act()))
 
 func initialize_move_manager():
 	move_manager = MoveManager.new()
 	add_child(move_manager)
 	move_manager.initialize(map_generator, current_cell, remaining_ap, action_points)
 	move_manager.connect("path_cost_updated", _on_path_cost_updated)
-	debug_print("MoveManager initialized")
 
+func place_at_valid_starting_position():
+	for x in range(map_generator.map_width):
+		for y in range(map_generator.map_height):
+			if map_generator.is_tile_walkable(x, y):
+				current_cell = Vector2i(x, y)
+				global_position = landscape_layer.map_to_local(current_cell)
+				debug_print("Starting position: " + str(current_cell))
+				return
+	
+	push_error("Не найдено ни одной проходимой клетки для размещения персонажа")
+#endregion
+
+#region Обработка ввода и основной процесс
 func _input(event):
 	if not can_process_input():
 		return
@@ -141,36 +140,50 @@ func _input(event):
 			handle_right_click()
 	
 	# Завершение хода по нажатию пробела
-	elif event.is_action_pressed("ui_select") or event is InputEventKey and event.pressed and event.keycode == KEY_SPACE:
-		debug_print("End turn triggered via keyboard")
+	elif event.is_action_pressed("ui_select") or (event is InputEventKey and event.pressed and event.keycode == KEY_SPACE):
+		debug_print("End turn triggered")
 		request_end_turn()
 
-func _process(delta):
+func _process(_delta):
 	# Обновление направления взгляда при движении мыши в режиме атаки
 	if attack_mode:
 		update_facing_direction_to_mouse()
 
-# Передвижение персонажа ------------------------------------
+func can_process_input() -> bool:
+	return game_controller and game_controller.can_player_act() and not is_moving and not is_attacking
 
+func request_end_turn():
+	debug_print("End turn requested")
+	emit_signal("end_turn_requested")
+	end_turn()
+
+func end_turn():
+	is_moving = false
+	movement_queue.clear()
+	set_path([])
+	
+	if tween and tween.is_running():
+		tween.kill()
+	
+	remaining_ap = action_points
+	move_manager.restore_ap()
+	
+	emit_signal("move_finished")
+	debug_print("Turn ended, AP restored: " + str(remaining_ap))
+#endregion
+
+#region Система перемещения
 func handle_left_click(event):
-	debug_print("Left click detected")
 	var mouse_pos = get_global_mouse_position()
 	var clicked_cell = landscape_layer.local_to_map(landscape_layer.to_local(mouse_pos))
 	
-	debug_print("Clicked cell: " + str(clicked_cell))
-	
 	if move_manager.is_cell_walkable(clicked_cell):
-		debug_print("Cell is walkable")
-		
 		if clicked_cell == move_manager.selected_cell:
 			start_movement(clicked_cell)
 		else:
 			select_cell(clicked_cell)
-	else:
-		debug_print("Cell is not walkable")
 
 func handle_right_click():
-	debug_print("Right click detected - clearing selection")
 	move_manager.clear_selection()
 	set_path([])
 	emit_signal("path_cost_changed", 0)
@@ -178,10 +191,8 @@ func handle_right_click():
 
 func select_cell(cell: Vector2i):
 	if move_manager.select_cell(cell):
-		debug_print("Selected cell: " + str(cell))
 		set_path([])
 	else:
-		debug_print("Could not select cell: " + str(cell))
 		set_path([])
 
 func set_path(new_path: Array):
@@ -189,12 +200,11 @@ func set_path(new_path: Array):
 	emit_signal("path_changed", path)
 
 func start_movement(target_cell: Vector2i):
-	debug_print("Starting movement to selected cell: " + str(target_cell))
+	debug_print("Starting movement to: " + str(target_cell))
 	
 	var calculated_path = move_manager.move_to_selected_cell()
 	
 	if calculated_path.size() == 0:
-		debug_print("No valid path found!")
 		set_path([])
 		return
 	
@@ -203,8 +213,6 @@ func start_movement(target_cell: Vector2i):
 	is_moving = true
 	
 	emit_signal("movement_started")
-	debug_print("Path calculated: " + str(path))
-	
 	process_movement_queue()
 
 func process_movement_queue():
@@ -213,8 +221,6 @@ func process_movement_queue():
 		return
 	
 	var next_cell = movement_queue[0]
-	debug_print("Moving to next cell: " + str(next_cell))
-	
 	movement_in_progress = true
 	animate_move_to_cell(next_cell)
 
@@ -239,6 +245,7 @@ func animate_move_to_cell(target_cell: Vector2i):
 	var old_cell = current_cell
 	current_cell = target_cell
 	
+	# Рассчитываем стоимость перемещения (прямо/по диагонали)
 	var move_cost = 10
 	if abs(direction.x) > 0 and abs(direction.y) > 0:
 		move_cost = 15
@@ -257,32 +264,55 @@ func animate_move_to_cell(target_cell: Vector2i):
 	set_path(new_path)
 	
 	movement_in_progress = false
-	
-	debug_print("Moved to cell: " + str(target_cell) + ", AP left: " + str(remaining_ap))
-	
 	process_movement_queue()
 
 func complete_movement():
 	if is_moving:
 		is_moving = false
-		debug_print("Movement completed")
+		debug_print("Movement completed, AP left: " + str(remaining_ap))
 		set_path([])
 		emit_signal("move_finished")
 
-# Система поля зрения и атаки ------------------------------------
+func _on_path_cost_updated(cost: int):
+	emit_signal("path_cost_changed", cost)
+#endregion
+
+#region Система поля зрения и атаки
+func toggle_attack_mode():
+	if !attack_mode:
+		if remaining_ap < attack_cost:
+			debug_print("Недостаточно AP для атаки! Необходимо: " + str(attack_cost) + ", имеется: " + str(remaining_ap))
+			return
+	
+	attack_mode = !attack_mode
+	
+	if attack_mode:
+		debug_print("Attack mode enabled")
+		move_manager.clear_selection()
+		set_path([])
+		update_facing_direction_to_mouse()
+	else:
+		visible_cells.clear()
+		hit_chance_map.clear()
+		available_attack_cells.clear()
+		emit_signal("field_of_view_changed", [], {})
+	
+	queue_redraw()
+
+func exit_attack_mode():
+	if attack_mode:
+		attack_mode = false
+		visible_cells.clear()
+		hit_chance_map.clear()
+		available_attack_cells.clear()
+		emit_signal("field_of_view_changed", [], {})
 
 func update_sprite_direction(direction: Vector2):
 	facing_direction = direction.normalized()
 	
 	if abs(direction.x) > abs(direction.y):
-		if direction.x > 0:
-			sprite.flip_h = false
-		else:
-			sprite.flip_h = true
-	
-	debug_print("Updated facing direction: " + str(facing_direction))
+		sprite.flip_h = direction.x < 0
 
-# Модифицируйте метод update_facing_direction_to_mouse
 func update_facing_direction_to_mouse():
 	var mouse_pos = get_global_mouse_position()
 	var direction_to_mouse = global_position.direction_to(mouse_pos)
@@ -305,43 +335,6 @@ func update_facing_direction_to_mouse():
 		last_facing_direction = direction_to_mouse
 		update_field_of_view()
 
-
-func toggle_attack_mode():
-	if !attack_mode:
-		if remaining_ap < attack_cost:
-			debug_print("Недостаточно AP для атаки! Необходимо: " + str(attack_cost) + ", имеется: " + str(remaining_ap))
-			return
-	
-	attack_mode = !attack_mode
-	
-	if attack_mode:
-		debug_print("Attack mode enabled")
-		move_manager.clear_selection()
-		set_path([])
-		
-		update_facing_direction_to_mouse()
-		
-		debug_print("Field of view angle: " + str(field_of_view_angle))
-		debug_print("Max view distance: " + str(max_view_distance))
-	else:
-		debug_print("Attack mode disabled")
-		visible_cells.clear()
-		hit_chance_map.clear()
-		available_attack_cells.clear()
-		emit_signal("field_of_view_changed", [], {})
-	
-	queue_redraw() # Для отображения отладочной информации
-
-func exit_attack_mode():
-	if attack_mode:
-		attack_mode = false
-		visible_cells.clear()
-		hit_chance_map.clear()
-		available_attack_cells.clear()
-		emit_signal("field_of_view_changed", [], {})
-		debug_print("Exited attack mode")
-
-# Обновленная функция для расчета поля зрения
 func update_field_of_view():
 	visible_cells.clear()
 	hit_chance_map.clear()
@@ -373,11 +366,7 @@ func update_field_of_view():
 	
 	# Отправляем сигнал для обновления визуализации
 	emit_signal("field_of_view_changed", visible_cells, hit_chance_map)
-	
-	debug_print("Field of view updated: " + str(visible_cells.size()) + " visible cells, " + 
-				str(available_attack_cells.size()) + " targetable enemies")
 
-# Проверка видимости клетки
 func is_cell_visible(target_cell: Vector2i) -> bool:
 	# Проверка границ карты
 	if target_cell.x < 0 or target_cell.y < 0 or target_cell.x >= map_generator.map_width or target_cell.y >= map_generator.map_height:
@@ -404,8 +393,6 @@ func is_cell_visible(target_cell: Vector2i) -> bool:
 	# Проверка препятствий с помощью алгоритма Брезенхема
 	return is_line_of_sight_clear(current_cell, target_cell)
 
-# Улучшенная проверка линии видимости с учетом диагоналей
-# Модифицируйте метод is_line_of_sight_clear
 func is_line_of_sight_clear(from_cell: Vector2i, to_cell: Vector2i) -> bool:
 	var line = get_line_between_cells(from_cell, to_cell)
 	
@@ -432,13 +419,10 @@ func is_line_of_sight_clear(from_cell: Vector2i, to_cell: Vector2i) -> bool:
 				
 				# Если обе угловые клетки блокируют обзор, то линия видимости прерывается
 				if map_generator.is_tile_blocking_vision(corner1.x, corner1.y) and map_generator.is_tile_blocking_vision(corner2.x, corner2.y):
-					# Убираем отладочный вывод для повышения производительности
-					# debug_print("Diagonal vision blocked between " + str(prev_cell) + " and " + str(cell))
 					return false
 	
 	return true
 
-# Алгоритм Брезенхема для построения линии между клетками
 func get_line_between_cells(from_cell: Vector2i, to_cell: Vector2i) -> Array:
 	var line = []
 	
@@ -469,7 +453,6 @@ func get_line_between_cells(from_cell: Vector2i, to_cell: Vector2i) -> Array:
 	
 	return line
 
-# Расчет шанса попадания на основе расстояния
 func calculate_hit_chance(distance: float) -> int:
 	# В пределах эффективного радиуса
 	if distance <= effective_attack_range:
@@ -486,7 +469,6 @@ func calculate_hit_chance(distance: float) -> int:
 		var factor = 1.0 - distance_beyond_medium / max_distance_factor
 		return max(min_chance, int(medium_distance_hit_chance * factor))
 
-# Поиск противника на указанной клетке
 func find_enemy_at_cell(cell: Vector2i) -> Enemy:
 	var enemies = get_tree().get_nodes_in_group("enemies")
 	
@@ -496,30 +478,21 @@ func find_enemy_at_cell(cell: Vector2i) -> Enemy:
 	
 	return null
 
-# Обработка клика в режиме атаки
 func handle_attack_click(event):
-	debug_print("Attack click detected")
 	var mouse_pos = get_global_mouse_position()
 	var clicked_cell = landscape_layer.local_to_map(landscape_layer.to_local(mouse_pos))
-	
-	debug_print("Clicked cell for attack: " + str(clicked_cell))
 	
 	# Проверяем, есть ли на клетке противник и в поле зрения ли он
 	var target_enemy = find_enemy_at_cell(clicked_cell)
 	
 	if target_enemy and clicked_cell in available_attack_cells:
-		debug_print("Valid enemy target found, executing attack")
+		debug_print("Executing attack on: " + str(clicked_cell))
 		execute_attack(target_enemy, clicked_cell)
-	else:
-		debug_print("No valid target at clicked cell or not in field of view")
 
-# Выполнение атаки с учетом шанса попадания
 func execute_attack(enemy: Enemy, target_cell: Vector2i):
 	if remaining_ap < attack_cost:
 		debug_print("Not enough AP to attack")
 		return
-	
-	debug_print("Executing attack on enemy at " + str(target_cell))
 	
 	# Уменьшаем очки действия
 	remaining_ap -= attack_cost
@@ -546,8 +519,6 @@ func execute_attack(enemy: Enemy, target_cell: Vector2i):
 	var hit_roll = randi() % 100 + 1  # Случайное число от 1 до 100
 	var hit_successful = hit_roll <= hit_chance
 	
-	debug_print("Attack roll: " + str(hit_roll) + ", Hit successful: " + str(hit_successful))
-	
 	# Анимация атаки
 	is_attacking = true
 	animate_attack(enemy, hit_successful)
@@ -559,7 +530,6 @@ func execute_attack(enemy: Enemy, target_cell: Vector2i):
 	# Выходим из режима атаки
 	exit_attack_mode()
 
-# Анимация атаки с учетом попадания или промаха
 func animate_attack(enemy: Enemy, hit_successful: bool):
 	var original_pos = global_position
 	var enemy_pos = enemy.global_position
@@ -584,69 +554,17 @@ func animate_attack(enemy: Enemy, hit_successful: bool):
 	if enemy.has_method("take_damage_with_chance"):
 		enemy.take_damage_with_chance(attack_damage, hit_successful)
 	else:
-		debug_print("Enemy doesn't have take_damage_with_chance method")
 		if hit_successful:
 			enemy.take_damage(attack_damage)
 	
 	is_attacking = false
+#endregion
 
-# Прочие функции ------------------------------------
-
-func place_at_valid_starting_position():
-	debug_print("Finding valid starting position...")
-	
-	for x in range(map_generator.map_width):
-		for y in range(map_generator.map_height):
-			if map_generator.is_tile_walkable(x, y):
-				current_cell = Vector2i(x, y)
-				global_position = landscape_layer.map_to_local(current_cell)
-				
-				debug_print("Starting position found at cell: " + str(current_cell) + 
-					" world pos: " + str(global_position))
-				return
-	
-	push_error("Не найдено ни одной проходимой клетки для размещения персонажа")
-
-func request_end_turn():
-	debug_print("End turn requested")
-	emit_signal("end_turn_requested")
-	end_turn()
-
-func end_turn():
-	is_moving = false
-	movement_queue.clear()
-	set_path([])
-	
-	if tween and tween.is_running():
-		tween.kill()
-	
-	remaining_ap = action_points
-	move_manager.restore_ap()
-	
-	emit_signal("move_finished")
-	debug_print("Turn ended, AP restored: " + str(remaining_ap))
-
-func can_process_input() -> bool:
-	return game_controller and game_controller.can_player_act() and not is_moving and not is_attacking
-
-func _on_path_cost_updated(cost: int):
-	emit_signal("path_cost_changed", cost)
-	debug_print("Path cost updated: " + str(cost))
-
-# Модифицируйте метод debug_print
+#region Вспомогательные методы
 func debug_print(message: String):
-	# Фильтруем частые сообщения
 	if debug_mode:
-		# Пропускаем сообщения об обновлении поля зрения, если флаг выключен
-		if not debug_log_fov and (
-			message.begins_with("Field of view updated") or
-			message.begins_with("Updated facing direction") or
-			message.begins_with("Diagonal vision blocked")
-		):
-			return
 		print(message)
 
-# Обновление параметров атаки на основе оружия
 func update_weapon_parameters():
 	if current_weapon:
 		attack_damage = current_weapon.damage
@@ -658,8 +576,8 @@ func update_weapon_parameters():
 		debug_print("Weapon parameters updated: " + current_weapon.name)
 		emit_signal("weapon_changed", current_weapon)
 
-# Метод для экипировки нового оружия
 func equip_weapon(weapon: Weapon):
 	current_weapon = weapon
 	update_weapon_parameters()
 	debug_print("Equipped weapon: " + weapon.name)
+#endregion
