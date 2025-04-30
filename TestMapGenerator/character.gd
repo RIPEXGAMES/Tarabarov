@@ -28,7 +28,7 @@ signal direction_changed(new_direction_index) # Новый сигнал для �
 @export var current_weapon: Weapon
 
 # Параметры поля зрения и атаки
-@export var field_of_view_angle: float = 120.0
+@export var field_of_view_angle: float = 360.0
 @export var max_view_distance: int = 100
 @export var effective_attack_range: int = 30
 @export_range(0, 100) var base_hit_chance: int = 80
@@ -85,6 +85,14 @@ var facing_direction_threshold: float = 0.01
 var move_manager = null
 #endregion
 
+#region Debug
+var debug_show_los_rays: bool = false  # Переключатель визуализации лучей
+var debug_lines: Array = []  # Сохраняем все линии для отображения
+var debug_blocked_points: Array = []  # Сохраняем заблокированные точки
+var debug_checked_cells: Array = []  # Сохраняем проверенные клетки
+var debug_angle_sectors = {}  # Словарь для хранения лучей по секторам
+#endregion
+
 #region Инициализация
 func _ready():
 	debug_print("Character initialized")
@@ -133,6 +141,40 @@ func place_at_valid_starting_position():
 	push_error("Не найдено ни одной проходимой клетки для размещения персонажа")
 #endregion
 
+#region draw
+func _draw():
+	if not debug_show_los_rays:
+		return
+		
+	# Цвета для отладочной информации
+	var ray_color = Color(0, 1, 0, 0.5)  # Зеленый для видимых лучей
+	var blocked_color = Color(1, 0, 0, 0.8)  # Красный для точек блокировки
+	var checked_cell_color = Color(0.5, 0.5, 0.8, 0.2)  # Голубой для проверенных клеток
+	
+	# Рисуем проверенные клетки (опционально, можно закомментировать для меньшего шума)
+	#var tile_size = landscape_layer.tile_set.tile_size
+	#for cell in debug_checked_cells:
+	#    var pos = landscape_layer.map_to_local(cell) - global_position
+	#    var rect = Rect2(pos - tile_size/2, tile_size)
+	#    draw_rect(rect, checked_cell_color, true)
+	
+	# Рисуем только самые дальние лучи из каждого сектора
+	var start_pos = Vector2.ZERO  # Позиция персонажа относительно себя (0,0)
+	for sector_key in debug_angle_sectors.keys():
+		var target_data = debug_angle_sectors[sector_key]
+		var end_pos = target_data.position - global_position
+		var is_blocked = target_data.blocked
+		
+		# Рисуем луч
+		draw_line(start_pos, end_pos, ray_color, 2.0, true)
+		
+		# Рисуем окончание луча
+		if is_blocked:
+			draw_circle(end_pos, 5.0, blocked_color)
+		else:
+			draw_circle(end_pos, 3.0, Color(0, 0.8, 0, 0.7))
+#endregion
+
 #region Обработка ввода и основной процесс
 func _input(event):
 	if not can_process_input():
@@ -151,6 +193,10 @@ func _input(event):
 	# Поворот против часовой стрелки - клавиша Q
 	if event is InputEventKey and event.pressed and event.keycode == KEY_Q:
 		rotate_character(-1)
+		return
+		
+	if event is InputEventKey and event.pressed and event.keycode == KEY_D:
+		toggle_debug_rays()
 		return
 	
 	# Обработка левого клика
@@ -444,108 +490,171 @@ func update_sprite_direction(direction: Vector2):
 		sprite.flip_h = direction.x < 0
 	# Можно добавить анимации для разных направлений
 
-# Модифицируем update_field_of_view для использования текущего направления
+# Новая реализация update_field_of_view с использованием поклеточного метода
+
+# Изменим метод update_field_of_view для сбора отладочной информации
 func update_field_of_view():
 	visible_cells.clear()
 	hit_chance_map.clear()
 	available_attack_cells.clear()
 	
-	# Получаем все клетки в максимальном радиусе обзора
-	var cells_to_check = []
-	var max_dist = max_view_distance
+	# Очистим отладочную информацию
+	if debug_show_los_rays:
+		debug_lines.clear()
+		debug_blocked_points.clear()
+		debug_checked_cells.clear()
+		debug_angle_sectors.clear()
 	
-	for x in range(-max_dist, max_dist + 1):
-		for y in range(-max_dist, max_dist + 1):
+	# Базовый угол направления взгляда в радианах
+	var face_angle = facing_direction.angle()
+	
+	# Половина угла обзора в радианах
+	var half_fov = deg_to_rad(field_of_view_angle) / 2.0
+	
+	# Проверяем все клетки в квадрате с центром в персонаже
+	for y in range(-max_view_distance, max_view_distance + 1):
+		for x in range(-max_view_distance, max_view_distance + 1):
 			var cell = current_cell + Vector2i(x, y)
-			if cell != current_cell and current_cell.distance_to(cell) <= max_dist:
-				cells_to_check.append(cell)
-	
-	# Для каждой клетки проверяем, находится ли она в поле зрения
-	for cell in cells_to_check:
-		if is_cell_visible(cell):
-			visible_cells.append(cell)
 			
-			# Рассчитываем шанс попадания на основе расстояния
+			# Проверяем границы карты
+			if not is_cell_valid(cell):
+				continue
+				
+			# Пропускаем текущую клетку персонажа
+			if cell == current_cell:
+				continue
+				
+			# Проверяем расстояние до клетки (убираем клетки вне радиуса обзора)
 			var distance = current_cell.distance_to(cell)
-			hit_chance_map[cell] = calculate_hit_chance(distance)
+			if distance > max_view_distance:
+				continue
+				
+			# Проверяем, находится ли клетка в угле обзора
+			var dir_vector = Vector2(cell.x - current_cell.x, cell.y - current_cell.y).normalized()
+			var angle_diff = abs(facing_direction.angle_to(dir_vector))
 			
-			# Проверяем, есть ли на клетке противник
-			var enemy = find_enemy_at_cell(cell)
-			if enemy:
-				available_attack_cells.append(cell)
+			if angle_diff > half_fov:
+				continue
+			
+			# Создаем ключ сектора с точностью до 5 градусов
+			var sector_angle = rad_to_deg(dir_vector.angle())
+			var sector_key = int(sector_angle / 5) * 5  # Округляем до 5 градусов
+			
+			# Собираем данные и проверяем видимость
+			var is_visible = false
+			var is_blocked = false
+			
+			if debug_show_los_rays:
+				is_visible = is_cell_visible_bresenham(cell)
+				is_blocked = !is_visible
+				
+				# Проверяем, является ли эта клетка более дальней для этого сектора
+				if !debug_angle_sectors.has(sector_key) or distance > debug_angle_sectors[sector_key].distance:
+					var cell_center = landscape_layer.map_to_local(cell)
+					debug_angle_sectors[sector_key] = {
+						"position": cell_center,
+						"distance": distance,
+						"blocked": is_blocked
+					}
+			else:
+				is_visible = is_cell_visible_bresenham(cell)
+			
+			if is_visible:
+				visible_cells.append(cell)
+				hit_chance_map[cell] = calculate_hit_chance(distance)
+				
+				# Проверяем наличие противника в клетке
+				var enemy = find_enemy_at_cell(cell)
+				if enemy:
+					available_attack_cells.append(cell)
 	
-	# Отправляем сигнал для обновления визуализации
+	# Обновляем отображение в режиме отладки
+	if debug_show_los_rays:
+		queue_redraw()
+	
+	# Отправляем сигнал об изменении поля зрения
 	emit_signal("field_of_view_changed", visible_cells, hit_chance_map)
 
-func is_cell_visible(target_cell: Vector2i) -> bool:
-	# Проверка границ карты
-	if target_cell.x < 0 or target_cell.y < 0 or target_cell.x >= map_generator.map_width or target_cell.y >= map_generator.map_height:
-		return false
+# Добавим отладочную версию функции проверки видимости
+func is_cell_visible_debug(target_cell: Vector2i, out_lines: Array, out_blocked: Array) -> bool:
+	# Если это текущая клетка, она всегда видна
+	if target_cell == current_cell:
+		return true
 	
-	# Получаем разницу координат
-	var delta = target_cell - current_cell
+	# Получаем центры клеток для визуализации луча
+	var start_pos = landscape_layer.map_to_local(current_cell)
+	var end_pos = landscape_layer.map_to_local(target_cell)
 	
-	# Проверяем расстояние
-	var distance = current_cell.distance_to(target_cell)
-	if distance > max_view_distance:
-		return false
+	# Сохраняем линию от персонажа до целевой клетки
+	out_lines.append([start_pos, end_pos])
 	
-	# Получаем направление к клетке в виде вектора
-	var direction_to_cell = Vector2(delta.x, delta.y).normalized()
+	# Получаем все клетки на линии между персонажем и целью
+	var line_cells = get_line_cells(current_cell, target_cell)
 	
-	# Угол между направлением взгляда и клеткой в градусах
-	var angle_to_cell = rad_to_deg(facing_direction.angle_to(direction_to_cell))
+	# Сохраняем все проверенные клетки для отображения
+	for cell in line_cells:
+		if cell != current_cell and cell != target_cell:
+			debug_checked_cells.append(cell)
 	
-	# Проверяем, находится ли в пределах угла обзора
-	if abs(angle_to_cell) > field_of_view_angle / 2:
-		return false
+	# Проверяем все клетки на пути, кроме начальной и конечной
+	for i in range(1, line_cells.size() - 1):
+		var cell = line_cells[i]
 		
-	# Проверка препятствий с помощью алгоритма Брезенхема
-	return is_line_of_sight_clear(current_cell, target_cell)
-
-func is_line_of_sight_clear(from_cell: Vector2i, to_cell: Vector2i) -> bool:
-	var line = get_line_between_cells(from_cell, to_cell)
-	
-	# Проверяем каждую клетку на пути (кроме начальной)
-	for i in range(1, line.size()):
-		var cell = line[i]
-		
-		# Если это конечная точка, не проверяем её на блокировку
-		if cell == to_cell:
-			continue
-			
-		# Проверяем текущую клетку
-		if map_generator.is_tile_blocking_vision(cell.x, cell.y):
+		# Если клетка за пределами карты, считаем линию прерванной
+		if not is_cell_valid(cell):
+			var cell_center = landscape_layer.map_to_local(cell)
+			out_blocked.append(cell_center)
 			return false
-			
-		# Дополнительно проверяем диагональное движение
-		if i > 0:
-			var prev_cell = line[i-1]
-			
-			# Если движение по диагонали
-			if abs(cell.x - prev_cell.x) == 1 and abs(cell.y - prev_cell.y) == 1:
-				var corner1 = Vector2i(prev_cell.x, cell.y)
-				var corner2 = Vector2i(cell.x, prev_cell.y)
-				
-				# Если обе угловые клетки блокируют обзор, то линия видимости прерывается
-				if map_generator.is_tile_blocking_vision(corner1.x, corner1.y) and map_generator.is_tile_blocking_vision(corner2.x, corner2.y):
-					return false
+		
+		# Если клетка блокирует обзор, клетка не видна
+		if map_generator.is_tile_blocking_vision(cell.x, cell.y):
+			var cell_center = landscape_layer.map_to_local(cell)
+			out_blocked.append(cell_center)
+			return false
 	
+	# Если не встретили препятствий, клетка видна
 	return true
 
-func get_line_between_cells(from_cell: Vector2i, to_cell: Vector2i) -> Array:
+
+# Проверяем видимость клетки с помощью алгоритма Брезенхема
+func is_cell_visible_bresenham(target_cell: Vector2i) -> bool:
+	# Если это текущая клетка, она всегда видна
+	if target_cell == current_cell:
+		return true
+		
+	# Получаем все клетки на линии между персонажем и целью
+	var line_cells = get_line_cells(current_cell, target_cell)
+	
+	# Проверяем все клетки на пути, кроме начальной и конечной
+	for i in range(1, line_cells.size() - 1):
+		var cell = line_cells[i]
+		
+		# Если клетка за пределами карты, считаем линию прерванной
+		if not is_cell_valid(cell):
+			return false
+			
+		# Если клетка блокирует обзор, клетка не видна
+		if map_generator.is_tile_blocking_vision(cell.x, cell.y):
+			return false
+	
+	# Если не встретили препятствий, клетка видна
+	return true
+
+# Получаем все клетки на линии между двумя точками
+func get_line_cells(from_cell: Vector2i, to_cell: Vector2i) -> Array:
 	var line = []
 	
+	# Реализация алгоритма Брезенхема для получения всех клеток на линии
 	var x0 = from_cell.x
 	var y0 = from_cell.y
 	var x1 = to_cell.x
 	var y1 = to_cell.y
 	
 	var dx = abs(x1 - x0)
-	var dy = abs(y1 - y0)
+	var dy = -abs(y1 - y0)
 	var sx = 1 if x0 < x1 else -1
 	var sy = 1 if y0 < y1 else -1
-	var err = dx - dy
+	var err = dx + dy
 	
 	while true:
 		line.append(Vector2i(x0, y0))
@@ -554,14 +663,23 @@ func get_line_between_cells(from_cell: Vector2i, to_cell: Vector2i) -> Array:
 			break
 			
 		var e2 = 2 * err
-		if e2 > -dy:
-			err -= dy
+		if e2 >= dy:
+			if x0 == x1:
+				break
+			err += dy
 			x0 += sx
-		if e2 < dx:
+		
+		if e2 <= dx:
+			if y0 == y1:
+				break
 			err += dx
 			y0 += sy
 	
 	return line
+
+# Проверка валидности клетки (в пределах карты)
+func is_cell_valid(cell: Vector2i) -> bool:
+	return cell.x >= 0 and cell.y >= 0 and cell.x < map_generator.map_width and cell.y < map_generator.map_height
 
 func calculate_hit_chance(distance: float) -> int:
 	# В пределах эффективного радиуса
@@ -668,6 +786,19 @@ func animate_attack(enemy: Enemy, hit_successful: bool):
 			enemy.take_damage(attack_damage)
 	
 	is_attacking = false
+func toggle_debug_rays():
+	debug_show_los_rays = !debug_show_los_rays
+	if debug_show_los_rays:
+		# Если включена визуализация, пересчитаем поле зрения
+		if attack_mode:
+			update_field_of_view()
+	else:
+		# Если выключена, очистим данные для визуализации
+		debug_lines.clear()
+		debug_blocked_points.clear()
+		debug_checked_cells.clear()
+		debug_angle_sectors.clear()
+	queue_redraw()
 #endregion
 
 #region Вспомогательные методы

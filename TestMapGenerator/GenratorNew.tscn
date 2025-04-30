@@ -129,5 +129,3 @@ position = Vector2(400, 200)
 zoom = Vector2(5, 5)
 script = ExtResource("4_octll")
 tilemap_layer = NodePath("../Landscape")
-min_zoom = 2.9
-max_zoom = 6.0

@@ -45,6 +45,7 @@ Width = 30
 Height = 25
 
 [node name="Camera2D" type="Camera2D" parent="."]
+visible = false
 position = Vector2(400, 200)
 zoom = Vector2(5, 5)
 script = ExtResource("3_yx5f8")

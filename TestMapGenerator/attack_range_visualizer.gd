@@ -122,10 +122,17 @@ func _draw():
 		draw_targeting_line(mouse_target)
 
 func draw_field_of_view():
+	# Безопасная проверка
+	if visible_cells.size() == 0:
+		return
+		
 	for cell in visible_cells:
 		if cell in target_cells:
 			continue
 		
+		if not is_valid_cell(cell):
+			continue
+			
 		var cell_center = landscape_layer.map_to_local(cell)
 		var hit_chance = hit_chances.get(cell, 0)
 		
@@ -143,6 +150,9 @@ func draw_field_of_view():
 
 func draw_targets():
 	for cell in target_cells:
+		if not is_valid_cell(cell):
+			continue
+			
 		var cell_center = landscape_layer.map_to_local(cell)
 		var hit_chance = hit_chances.get(cell, 0)
 		
@@ -262,6 +272,10 @@ func draw_string_with_outline(text: String, position: Vector2, hit_chance: int):
 	
 	# Рисуем основной текст
 	draw_string(font, position, text, HORIZONTAL_ALIGNMENT_CENTER, -1.0, FONT_SIZE, text_color)
+
+# Проверка валидности клетки для предотвращения ошибок
+func is_valid_cell(cell: Vector2i) -> bool:
+	return cell.x >= 0 and cell.y >= 0 and cell.x < landscape_layer.get_used_rect().size.x and cell.y < landscape_layer.get_used_rect().size.y
 #endregion
 
 # Вызываем эту функцию при изменении направления персонажа
