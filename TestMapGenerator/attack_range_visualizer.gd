@@ -58,6 +58,8 @@ func _ready():
 	if character.has_signal("attack_executed"):
 		character.connect("attack_executed", _on_attack_executed)
 	
+	character.connect("direction_changed", _on_direction_changed)
+	
 	# Получаем размер тайла и шрифт
 	tile_size = landscape_layer.tile_set.tile_size
 	font = ThemeDB.fallback_font
@@ -261,3 +263,30 @@ func draw_string_with_outline(text: String, position: Vector2, hit_chance: int):
 	# Рисуем основной текст
 	draw_string(font, position, text, HORIZONTAL_ALIGNMENT_CENTER, -1.0, FONT_SIZE, text_color)
 #endregion
+
+# Вызываем эту функцию при изменении направления персонажа
+func _on_direction_changed(_direction_index):
+	if character.attack_mode:
+		update_display()
+
+func update_display():
+	# Делаем визуализатор видимым только в режиме атаки
+	active = character.attack_mode
+	modulate.a = 1.0 if active else 0.0
+	
+	if active:
+		# Обновляем поле зрения на основе текущего направления персонажа
+		visible_cells = character.visible_cells.duplicate()
+		hit_chances = character.hit_chance_map.duplicate()
+		
+		# Находим клетки с целями
+		target_cells.clear()
+		for cell in visible_cells:
+			if character.find_enemy_at_cell(cell):
+				target_cells.append(cell)
+				
+		# Запускаем анимацию
+		if target_animation:
+			animation_time = 0.0
+			
+		queue_redraw()

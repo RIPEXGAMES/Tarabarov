@@ -12,6 +12,7 @@ signal attack_executed(target_cell)
 signal attack_started(target_enemy)
 signal field_of_view_changed(visible_cells_array, hit_chances)
 signal weapon_changed(weapon)
+signal direction_changed(new_direction_index) # Новый сигнал для обновления интерфейса
 #endregion
 
 #region Экспортируемые настройки
@@ -32,6 +33,9 @@ signal weapon_changed(weapon)
 @export var effective_attack_range: int = 30
 @export_range(0, 100) var base_hit_chance: int = 80
 @export_range(0, 100) var medium_distance_hit_chance: int = 40
+
+# Настройки поворота
+@export var rotation_cost: int = 5 # Стоимость поворота на 45 градусов
 #endregion
 
 #region Внутренние переменные
@@ -42,6 +46,20 @@ var facing_direction: Vector2 = Vector2.RIGHT
 var is_moving: bool = false
 var attack_mode: bool = false
 var is_attacking: bool = false
+
+# Направления поворота
+enum Direction { N, NE, E, SE, S, SW, W, NW }
+var current_direction: int = Direction.E  # По умолчанию смотрит вправо
+var direction_vectors: Array = [
+	Vector2(0, -1),   # N
+	Vector2(1, -1),   # NE
+	Vector2(1, 0),    # E
+	Vector2(1, 1),    # SE
+	Vector2(0, 1),    # S
+	Vector2(-1, 1),   # SW
+	Vector2(-1, 0),   # W
+	Vector2(-1, -1)   # NW
+]
 
 # Системные переменные
 var path: Array = []
@@ -125,6 +143,16 @@ func _input(event):
 		toggle_attack_mode()
 		return
 	
+	# Поворот по часовой стрелке - клавиша E
+	if event is InputEventKey and event.pressed and event.keycode == KEY_E:
+		rotate_character(1)
+		return
+		
+	# Поворот против часовой стрелки - клавиша Q
+	if event is InputEventKey and event.pressed and event.keycode == KEY_Q:
+		rotate_character(-1)
+		return
+	
 	# Обработка левого клика
 	if event.is_action_pressed("left_click"):
 		if attack_mode:
@@ -145,9 +173,8 @@ func _input(event):
 		request_end_turn()
 
 func _process(_delta):
-	# Обновление направления взгляда при движении мыши в режиме атаки
-	if attack_mode:
-		update_facing_direction_to_mouse()
+	# Больше не обновляем направление взгляда при движении мышкой
+	pass
 
 func can_process_input() -> bool:
 	return game_controller and game_controller.can_player_act() and not is_moving and not is_attacking
@@ -170,6 +197,68 @@ func end_turn():
 	
 	emit_signal("move_finished")
 	debug_print("Turn ended, AP restored: " + str(remaining_ap))
+#endregion
+
+#region Система поворота персонажа
+func rotate_character(direction_step: int):
+	# Проверяем достаточно ли AP для поворота
+	if remaining_ap < rotation_cost:
+		debug_print("Недостаточно AP для поворота! Необходимо: " + str(rotation_cost) + ", имеется: " + str(remaining_ap))
+		return
+	
+	# Вычисляем новое направление
+	var new_direction = (current_direction + direction_step) % 8
+	if new_direction < 0:
+		new_direction += 8
+	
+	# Если направление не изменилось, прекращаем выполнение
+	if new_direction == current_direction:
+		return
+		
+	# Списываем очки действия
+	remaining_ap -= rotation_cost
+	
+	# Обновляем направление
+	set_character_direction(new_direction)
+	
+	# Обновляем доступные клетки для перемещения
+	move_manager.current_ap = remaining_ap
+	move_manager.update_available_cells()
+	
+	debug_print("Character rotated to direction: " + get_direction_name(current_direction))
+
+func set_character_direction(direction_index: int):
+	var old_direction = current_direction
+	current_direction = direction_index
+	facing_direction = direction_vectors[direction_index]
+	
+	# Обновляем спрайт персонажа
+	update_sprite_direction(facing_direction)
+	
+	# Обновляем поле зрения, если в режиме атаки
+	if attack_mode:
+		update_field_of_view()
+	
+	# Отправляем сигнал для обновления UI
+	emit_signal("direction_changed", current_direction)
+	
+	# Если это движение (а не ручной поворот), можно отобразить визуальный эффект
+	if is_moving:
+		var direction_indicator = get_node_or_null("DirectionIndicator")
+		if direction_indicator and direction_indicator.has_method("show_movement_direction_change"):
+			direction_indicator.show_movement_direction_change(old_direction, current_direction)
+
+func get_direction_name(direction_index: int) -> String:
+	match direction_index:
+		Direction.N: return "Север"
+		Direction.NE: return "Северо-восток"
+		Direction.E: return "Восток"
+		Direction.SE: return "Юго-восток"
+		Direction.S: return "Юг"
+		Direction.SW: return "Юго-запад"
+		Direction.W: return "Запад" 
+		Direction.NW: return "Северо-запад"
+		_: return "Неизвестно"
 #endregion
 
 #region Система перемещения
@@ -208,6 +297,29 @@ func start_movement(target_cell: Vector2i):
 		set_path([])
 		return
 	
+	# Если путь содержит больше одной клетки, вычисляем направление движения
+	if calculated_path.size() > 1:
+		var first_step = calculated_path[0]
+		var movement_direction = landscape_layer.map_to_local(first_step) - global_position
+		var movement_direction_index = get_closest_direction_index(movement_direction)
+		
+		# Проверяем, нужно ли поворачивать персонажа отдельно перед движением
+		# Если персонаж уже смотрит в нужном направлении или в соседнем секторе (±45°),
+		# то дополнительный поворот не требуется и AP не тратятся
+		if movement_direction_index != current_direction:
+			var dir_diff = abs(movement_direction_index - current_direction)
+			dir_diff = min(dir_diff, 8 - dir_diff)  # Учитываем кратчайший поворот
+			
+			# Только если разница больше 1 (больше 45°), считаем это значительным поворотом
+			if dir_diff > 1:
+				# Если у игрока достаточно AP для поворота, поворачиваемся перед движением
+				if remaining_ap >= rotation_cost:
+					remaining_ap -= rotation_cost
+					move_manager.current_ap = remaining_ap
+					move_manager.update_available_cells()
+					set_character_direction(movement_direction_index)
+					debug_print("Character turned before moving. AP left: " + str(remaining_ap))
+	
 	set_path(calculated_path)
 	movement_queue = calculated_path.duplicate()
 	is_moving = true
@@ -227,8 +339,12 @@ func process_movement_queue():
 func animate_move_to_cell(target_cell: Vector2i):
 	var target_position = landscape_layer.map_to_local(target_cell)
 	var direction = global_position.direction_to(target_position)
-	update_sprite_direction(direction)
 	
+	# Определяем направление движения и поворачиваем персонажа
+	var movement_direction_index = get_closest_direction_index(direction)
+	set_character_direction(movement_direction_index)
+	
+	# Остальной код анимации движения остается без изменений
 	var distance = global_position.distance_to(target_position)
 	var duration = distance / (move_speed * landscape_layer.tile_set.tile_size.x)
 	
@@ -265,6 +381,20 @@ func animate_move_to_cell(target_cell: Vector2i):
 	
 	movement_in_progress = false
 	process_movement_queue()
+	
+# Новый метод для определения ближайшего фиксированного направления
+func get_closest_direction_index(direction_vector: Vector2) -> int:
+	var normalized_vector = direction_vector.normalized()
+	var closest_direction = 0
+	var smallest_angle = 999.0
+	
+	for i in range(direction_vectors.size()):
+		var angle_diff = abs(direction_vectors[i].angle_to(normalized_vector))
+		if angle_diff < smallest_angle:
+			smallest_angle = angle_diff
+			closest_direction = i
+			
+	return closest_direction
 
 func complete_movement():
 	if is_moving:
@@ -290,7 +420,8 @@ func toggle_attack_mode():
 		debug_print("Attack mode enabled")
 		move_manager.clear_selection()
 		set_path([])
-		update_facing_direction_to_mouse()
+		# Используем текущее направление для обновления поля зрения
+		update_field_of_view()
 	else:
 		visible_cells.clear()
 		hit_chance_map.clear()
@@ -307,34 +438,13 @@ func exit_attack_mode():
 		available_attack_cells.clear()
 		emit_signal("field_of_view_changed", [], {})
 
+# Модифицируем update_sprite_direction, чтобы он учитывал фиксированное направление
 func update_sprite_direction(direction: Vector2):
-	facing_direction = direction.normalized()
-	
 	if abs(direction.x) > abs(direction.y):
 		sprite.flip_h = direction.x < 0
+	# Можно добавить анимации для разных направлений
 
-func update_facing_direction_to_mouse():
-	var mouse_pos = get_global_mouse_position()
-	var direction_to_mouse = global_position.direction_to(mouse_pos)
-	
-	# Проверяем, достаточно ли изменилось направление для пересчета
-	if direction_to_mouse.distance_to(last_facing_direction) < facing_direction_threshold:
-		return
-	
-	# Ограничиваем частоту обновления поля зрения
-	var current_time = Time.get_ticks_msec() / 1000.0
-	var should_update_fov = current_time - last_fov_update_time >= fov_update_interval
-	
-	# Всегда обновляем направление спрайта
-	facing_direction = direction_to_mouse
-	update_sprite_direction(direction_to_mouse)
-	
-	# Обновляем поле зрения только при значительном изменении или по таймеру
-	if should_update_fov:
-		last_fov_update_time = current_time
-		last_facing_direction = direction_to_mouse
-		update_field_of_view()
-
+# Модифицируем update_field_of_view для использования текущего направления
 func update_field_of_view():
 	visible_cells.clear()
 	hit_chance_map.clear()

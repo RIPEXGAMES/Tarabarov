@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3 uid="uid://ghlwvb6jwha4"]
+[gd_scene load_steps=25 format=3 uid="uid://ghlwvb6jwha4"]
 
 [ext_resource type="Script" uid="uid://x0s5y5mi2u1g" path="res://TestMapGenerator/movement_manger.gd" id="1_2oqp7"]
 [ext_resource type="Script" uid="uid://b54q5eaynxmba" path="res://TestMapGenerator/map_generator.gd" id="1_y2a0y"]
@@ -14,6 +14,7 @@
 [ext_resource type="Resource" uid="uid://btnvmndso0075" path="res://Weapons/PM.tres" id="9_05qis"]
 [ext_resource type="Script" uid="uid://2i8aqfve35u5" path="res://TestMapGenerator/path_visualizer.gd" id="9_o1fp3"]
 [ext_resource type="Texture2D" uid="uid://rgeo0oly223m" path="res://TestMapGenerator/Dot_Path.png" id="11_3ptqc"]
+[ext_resource type="Script" uid="uid://dyh5dp605610h" path="res://TestMapGenerator/direction_indicator.gd" id="11_6fjwt"]
 [ext_resource type="Script" uid="uid://ccgkh4udit6v7" path="res://TestMapGenerator/ui.gd" id="11_sxreq"]
 [ext_resource type="Texture2D" uid="uid://jntmhc252c3b" path="res://TestMapGenerator/Dot_Path_Preview.png" id="12_2oqp7"]
 [ext_resource type="Script" uid="uid://b8cbwm14vsfxo" path="res://TestMapGenerator/attack_range_visualizer.gd" id="12_6s1bd"]
@@ -57,6 +58,13 @@ texture = ExtResource("5_3h22p")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Character"]
 shape = SubResource("RectangleShape2D_f5uek")
+
+[node name="DirectionIndicator" type="Node2D" parent="Character"]
+script = ExtResource("11_6fjwt")
+triangle_size = 2.0
+distance_from_center = 10.0
+transition_speed = 17.0
+smoothing = 0.365
 
 [node name="Highlight" type="TileMapLayer" parent="."]
 tile_set = ExtResource("5_ey8tn")
