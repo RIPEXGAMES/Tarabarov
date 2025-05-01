@@ -28,7 +28,7 @@ signal direction_changed(new_direction_index) # Новый сигнал для �
 @export var current_weapon: Weapon
 
 # Параметры поля зрения и атаки
-@export var field_of_view_angle: float = 360.0
+@export var field_of_view_angle: float = 110.0
 @export var max_view_distance: int = 100
 @export var effective_attack_range: int = 30
 @export_range(0, 100) var base_hit_chance: int = 80
@@ -86,11 +86,13 @@ var move_manager = null
 #endregion
 
 #region Debug
+# Обновите переменные в #region Debug для хранения смещенных лучей
 var debug_show_los_rays: bool = false  # Переключатель визуализации лучей
-var debug_lines: Array = []  # Сохраняем все линии для отображения
-var debug_blocked_points: Array = []  # Сохраняем заблокированные точки
-var debug_checked_cells: Array = []  # Сохраняем проверенные клетки
-var debug_angle_sectors = {}  # Словарь для хранения лучей по секторам
+var debug_hovered_cell: Vector2i = Vector2i(-1, -1)  # Клетка под курсором
+var debug_ray_cells: Array = []  # Клетки на луче
+var debug_blocked_cell: Vector2i = Vector2i(-1, -1)  # Клетка, блокирующая обзор
+var debug_offset_start1: Vector2i = Vector2i(-1, -1)  # Начальная точка смещенного луча 1
+var debug_offset_start2: Vector2i = Vector2i(-1, -1)  # Начальная точка смещенного луча 2
 #endregion
 
 #region Инициализация
@@ -142,37 +144,66 @@ func place_at_valid_starting_position():
 #endregion
 
 #region draw
+# Обновленная функция отрисовки для двух лучей
 func _draw():
-	if not debug_show_los_rays:
+	if not debug_show_los_rays or debug_hovered_cell == Vector2i(-1, -1):
 		return
 		
 	# Цвета для отладочной информации
-	var ray_color = Color(0, 1, 0, 0.5)  # Зеленый для видимых лучей
-	var blocked_color = Color(1, 0, 0, 0.8)  # Красный для точек блокировки
-	var checked_cell_color = Color(0.5, 0.5, 0.8, 0.2)  # Голубой для проверенных клеток
+	var ray1_color = Color(0, 1, 0, 0.7)      # Зеленый для первого луча
+	var ray2_color = Color(0, 0.7, 1, 0.7)    # Синий для второго луча
+	var cell_color = Color(0.5, 0.5, 0.8, 0.2) # Светло-голубой для клеток на пути
+	var target_color = Color(0, 0.8, 0, 0.5)  # Ярко-зеленый для целевой клетки
+	var blocked_color = Color(1, 0, 0, 0.5)   # Красный для блокирующей клетки
 	
-	# Рисуем проверенные клетки (опционально, можно закомментировать для меньшего шума)
-	#var tile_size = landscape_layer.tile_set.tile_size
-	#for cell in debug_checked_cells:
-	#    var pos = landscape_layer.map_to_local(cell) - global_position
-	#    var rect = Rect2(pos - tile_size/2, tile_size)
-	#    draw_rect(rect, checked_cell_color, true)
+	# Получаем размер тайла
+	var tile_size = landscape_layer.tile_set.tile_size
 	
-	# Рисуем только самые дальние лучи из каждого сектора
-	var start_pos = Vector2.ZERO  # Позиция персонажа относительно себя (0,0)
-	for sector_key in debug_angle_sectors.keys():
-		var target_data = debug_angle_sectors[sector_key]
-		var end_pos = target_data.position - global_position
-		var is_blocked = target_data.blocked
+	# Рисуем клетки вдоль луча
+	for cell in debug_ray_cells:
+		var cell_pos:Vector2i = landscape_layer.map_to_local(cell) - global_position
+		var rect = Rect2(cell_pos - tile_size/2, tile_size)
+		draw_rect(rect, cell_color, true)
+	
+	# Получаем конечную точку
+	var end_pos = landscape_layer.map_to_local(debug_hovered_cell) - global_position
+	
+	# Рассчитываем смещения для лучей
+	var dir = Vector2(debug_hovered_cell.x - current_cell.x, debug_hovered_cell.y - current_cell.y).normalized()
+	var perpendicular = Vector2(-dir.y, dir.x)
+	var offset_amount = tile_size.y * 0.25
+	
+	# Точки начала для лучей (в локальных координатах относительно персонажа)
+	var start_pos = Vector2.ZERO
+	var upper_start = start_pos + perpendicular * offset_amount
+	var lower_start = start_pos - perpendicular * offset_amount
+	
+	# Рисуем два луча разными цветами
+	draw_line(upper_start, end_pos, ray1_color, 1.5, true)
+	draw_line(lower_start, end_pos, ray2_color, 1.5, true)
+	
+	# Рисуем маленькие кружки для обозначения точек начала лучей
+	draw_circle(upper_start, 3.0, ray1_color)
+	draw_circle(lower_start, 3.0, ray2_color)
+	
+	# Выделяем целевую клетку
+	var target_pos:Vector2i = landscape_layer.map_to_local(debug_hovered_cell) - global_position
+	var target_rect = Rect2(target_pos - tile_size/2, tile_size)
+	draw_rect(target_rect, target_color, true)
+	draw_rect(target_rect, target_color.lightened(0.3), false, 2)
+	
+	# Если есть блокирующая клетка, выделяем её
+	if debug_blocked_cell != Vector2i(-1, -1):
+		var blocked_pos:Vector2i = landscape_layer.map_to_local(debug_blocked_cell) - global_position
+		var blocked_rect = Rect2(blocked_pos - tile_size/2, tile_size)
+		draw_rect(blocked_rect, blocked_color, true)
+		draw_rect(blocked_rect, blocked_color.darkened(0.3), false, 2)
 		
-		# Рисуем луч
-		draw_line(start_pos, end_pos, ray_color, 2.0, true)
-		
-		# Рисуем окончание луча
-		if is_blocked:
-			draw_circle(end_pos, 5.0, blocked_color)
-		else:
-			draw_circle(end_pos, 3.0, Color(0, 0.8, 0, 0.7))
+		# Рисуем крестик на блокирующей клетке
+		var half_size = tile_size / 2
+		var center = blocked_pos
+		draw_line(center - half_size/2, center + half_size/2, Color(1,0,0,0.8), 3)
+		draw_line(Vector2(center.x + half_size.x/2, center.y - half_size.y/2), Vector2(center.x - half_size.x/2, center.y + half_size.y/2), Color(1,0,0,0.8), 3)
 #endregion
 
 #region Обработка ввода и основной процесс
@@ -198,6 +229,7 @@ func _input(event):
 	if event is InputEventKey and event.pressed and event.keycode == KEY_D:
 		toggle_debug_rays()
 		return
+		
 	
 	# Обработка левого клика
 	if event.is_action_pressed("left_click"):
@@ -219,8 +251,9 @@ func _input(event):
 		request_end_turn()
 
 func _process(_delta):
-	# Больше не обновляем направление взгляда при движении мышкой
-	pass
+	 # Добавьте это в конец метода _process
+	if debug_show_los_rays:
+		update_debug_ray()
 
 func can_process_input() -> bool:
 	return game_controller and game_controller.can_player_act() and not is_moving and not is_attacking
@@ -490,20 +523,11 @@ func update_sprite_direction(direction: Vector2):
 		sprite.flip_h = direction.x < 0
 	# Можно добавить анимации для разных направлений
 
-# Новая реализация update_field_of_view с использованием поклеточного метода
-
 # Изменим метод update_field_of_view для сбора отладочной информации
 func update_field_of_view():
 	visible_cells.clear()
 	hit_chance_map.clear()
 	available_attack_cells.clear()
-	
-	# Очистим отладочную информацию
-	if debug_show_los_rays:
-		debug_lines.clear()
-		debug_blocked_points.clear()
-		debug_checked_cells.clear()
-		debug_angle_sectors.clear()
 	
 	# Базовый угол направления взгляда в радианах
 	var face_angle = facing_direction.angle()
@@ -536,30 +560,8 @@ func update_field_of_view():
 			if angle_diff > half_fov:
 				continue
 			
-			# Создаем ключ сектора с точностью до 5 градусов
-			var sector_angle = rad_to_deg(dir_vector.angle())
-			var sector_key = int(sector_angle / 5) * 5  # Округляем до 5 градусов
-			
-			# Собираем данные и проверяем видимость
-			var is_visible = false
-			var is_blocked = false
-			
-			if debug_show_los_rays:
-				is_visible = is_cell_visible_bresenham(cell)
-				is_blocked = !is_visible
-				
-				# Проверяем, является ли эта клетка более дальней для этого сектора
-				if !debug_angle_sectors.has(sector_key) or distance > debug_angle_sectors[sector_key].distance:
-					var cell_center = landscape_layer.map_to_local(cell)
-					debug_angle_sectors[sector_key] = {
-						"position": cell_center,
-						"distance": distance,
-						"blocked": is_blocked
-					}
-			else:
-				is_visible = is_cell_visible_bresenham(cell)
-			
-			if is_visible:
+			# Проверка видимости с использованием метода с двумя смещёнными лучами
+			if is_cell_visible_with_offset_rays(cell):
 				visible_cells.append(cell)
 				hit_chance_map[cell] = calculate_hit_chance(distance)
 				
@@ -568,53 +570,78 @@ func update_field_of_view():
 				if enemy:
 					available_attack_cells.append(cell)
 	
-	# Обновляем отображение в режиме отладки
-	if debug_show_los_rays:
-		queue_redraw()
-	
 	# Отправляем сигнал об изменении поля зрения
 	emit_signal("field_of_view_changed", visible_cells, hit_chance_map)
 
-# Добавим отладочную версию функции проверки видимости
-func is_cell_visible_debug(target_cell: Vector2i, out_lines: Array, out_blocked: Array) -> bool:
+func is_cell_visible_with_offset_rays(target_cell: Vector2i) -> bool:
 	# Если это текущая клетка, она всегда видна
 	if target_cell == current_cell:
 		return true
-	
-	# Получаем центры клеток для визуализации луча
-	var start_pos = landscape_layer.map_to_local(current_cell)
-	var end_pos = landscape_layer.map_to_local(target_cell)
-	
-	# Сохраняем линию от персонажа до целевой клетки
-	out_lines.append([start_pos, end_pos])
-	
-	# Получаем все клетки на линии между персонажем и целью
-	var line_cells = get_line_cells(current_cell, target_cell)
-	
-	# Сохраняем все проверенные клетки для отображения
-	for cell in line_cells:
-		if cell != current_cell and cell != target_cell:
-			debug_checked_cells.append(cell)
-	
-	# Проверяем все клетки на пути, кроме начальной и конечной
-	for i in range(1, line_cells.size() - 1):
-		var cell = line_cells[i]
 		
-		# Если клетка за пределами карты, считаем линию прерванной
-		if not is_cell_valid(cell):
-			var cell_center = landscape_layer.map_to_local(cell)
-			out_blocked.append(cell_center)
-			return false
+	# Определяем направление и перпендикулярный вектор для смещения
+	var dir = Vector2(target_cell.x - current_cell.x, target_cell.y - current_cell.y).normalized()
+	var perpendicular = Vector2(-dir.y, dir.x)  # Перпендикулярный вектор
+	
+	# Получаем координаты центра текущей клетки
+	var center_pos = landscape_layer.map_to_local(current_cell)
+	
+	# Смещение для верхнего и нижнего лучей (в мировых координатах)
+	var offset_amount = landscape_layer.tile_set.tile_size.y * 0.25  # 25% от размера тайла
+	
+	# Точки для смещенных лучей
+	var upper_point = center_pos + perpendicular * offset_amount
+	var lower_point = center_pos - perpendicular * offset_amount
+	
+	# Конечная точка (центр целевой клетки)
+	var target_pos = landscape_layer.map_to_local(target_cell)
+	
+	# Для отладки сохраняем точки начала лучей в клеточных координатах
+	if debug_show_los_rays:
+		debug_offset_start1 = landscape_layer.local_to_map(upper_point)
+		debug_offset_start2 = landscape_layer.local_to_map(lower_point)
+		# Если точки находятся в той же клетке, смещаем их немного для визуализации
+		if debug_offset_start1 == current_cell:
+			debug_offset_start1 = Vector2i(-100, -100)  # Специальное значение
+		if debug_offset_start2 == current_cell:
+			debug_offset_start2 = Vector2i(-100, -100)  # Специальное значение
+	
+	# Проверяем оба луча - клетка видима только если ОБА луча видят цель
+	var upper_ray_visible = is_point_to_point_visible(upper_point, target_pos)
+	var lower_ray_visible = is_point_to_point_visible(lower_point, target_pos)
+	
+	return upper_ray_visible && lower_ray_visible
+
+func is_point_to_point_visible(from_point: Vector2, to_point: Vector2) -> bool:
+	var total_distance = from_point.distance_to(to_point)
+	var direction = (to_point - from_point).normalized()
+	
+	# Количество шагов проверки (минимум 10, или больше для дальних клеток)
+	var steps = max(10, int(total_distance / (landscape_layer.tile_set.tile_size.x * 0.25)))
+	var step_size = total_distance / steps
+	
+	# Проверяем каждую точку на пути (кроме начальной и конечной)
+	for i in range(1, steps):
+		var check_position = from_point + direction * (step_size * i)
+		var check_cell = landscape_layer.local_to_map(check_position)
 		
-		# Если клетка блокирует обзор, клетка не видна
-		if map_generator.is_tile_blocking_vision(cell.x, cell.y):
-			var cell_center = landscape_layer.map_to_local(cell)
-			out_blocked.append(cell_center)
+		# Не проверяем начальную и конечную клетки
+		if check_cell == current_cell or check_cell == landscape_layer.local_to_map(to_point):
+			continue
+		
+		# Если клетка блокирует обзор, луч не проходит
+		if is_cell_valid(check_cell) and map_generator.is_tile_blocking_vision(check_cell.x, check_cell.y):
 			return false
 	
-	# Если не встретили препятствий, клетка видна
 	return true
 
+# Вспомогательная функция для проверки пути без препятствий
+func is_path_clear(path_cells: Array) -> bool:
+	# Проверяем все клетки на пути, кроме начальной и конечной
+	for i in range(1, path_cells.size() - 1):
+		var cell = path_cells[i]
+		if not is_cell_valid(cell) or map_generator.is_tile_blocking_vision(cell.x, cell.y):
+			return false
+	return true
 
 # Проверяем видимость клетки с помощью алгоритма Брезенхема
 func is_cell_visible_bresenham(target_cell: Vector2i) -> bool:
@@ -786,18 +813,14 @@ func animate_attack(enemy: Enemy, hit_successful: bool):
 			enemy.take_damage(attack_damage)
 	
 	is_attacking = false
+	
 func toggle_debug_rays():
 	debug_show_los_rays = !debug_show_los_rays
-	if debug_show_los_rays:
-		# Если включена визуализация, пересчитаем поле зрения
-		if attack_mode:
-			update_field_of_view()
-	else:
+	if not debug_show_los_rays:
 		# Если выключена, очистим данные для визуализации
-		debug_lines.clear()
-		debug_blocked_points.clear()
-		debug_checked_cells.clear()
-		debug_angle_sectors.clear()
+		debug_hovered_cell = Vector2i(-1, -1)
+		debug_ray_cells.clear()
+		debug_blocked_cell = Vector2i(-1, -1)
 	queue_redraw()
 #endregion
 
@@ -822,3 +845,53 @@ func equip_weapon(weapon: Weapon):
 	update_weapon_parameters()
 	debug_print("Equipped weapon: " + weapon.name)
 #endregion
+
+func update_debug_ray():
+	if not debug_show_los_rays:
+		return
+	
+	# Получаем клетку под курсором
+	var mouse_pos = get_global_mouse_position()
+	var cell = landscape_layer.local_to_map(landscape_layer.to_local(mouse_pos))
+	
+	# Проверяем валидность клетки
+	if not is_cell_valid(cell) or cell == current_cell:
+		debug_hovered_cell = Vector2i(-1, -1)
+		debug_ray_cells.clear()
+		debug_blocked_cell = Vector2i(-1, -1)
+		debug_offset_start1 = Vector2i(-100, -100)  # Специальное значение
+		debug_offset_start2 = Vector2i(-100, -100)  # Специальное значение
+		queue_redraw()
+		return
+	
+	# Сохраняем клетку под курсором
+	debug_hovered_cell = cell
+	
+	# Основной луч через алгоритм Брезенхема для визуализации клеток на пути
+	var main_path = get_line_cells(current_cell, cell)
+	debug_ray_cells = main_path
+	
+	# Проверяем основной луч на блокировку (для отображения точки блокировки)
+	debug_blocked_cell = Vector2i(-1, -1)
+	for i in range(1, main_path.size() - 1):
+		var check_cell = main_path[i]
+		if map_generator.is_tile_blocking_vision(check_cell.x, check_cell.y):
+			debug_blocked_cell = check_cell
+			break
+	
+	# Рассчитываем позиции для смещенных лучей
+	var dir = Vector2(cell.x - current_cell.x, cell.y - current_cell.y).normalized()
+	var perpendicular = Vector2(-dir.y, dir.x)
+	
+	var center_pos = landscape_layer.map_to_local(current_cell)
+	var offset_amount = landscape_layer.tile_set.tile_size.y * 0.25
+	
+	# Точки для лучей - специальное значение для отображения
+	debug_offset_start1 = Vector2i(-100, -100)  # Верхний луч
+	debug_offset_start2 = Vector2i(-100, -100)  # Нижний луч
+	
+	# Вызываем проверку видимости, которая заполнит debug_offset_start1/2
+	is_cell_visible_with_offset_rays(cell)
+	
+	# Обновляем отображение
+	queue_redraw()
